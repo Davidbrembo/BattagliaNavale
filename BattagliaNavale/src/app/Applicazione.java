@@ -19,7 +19,7 @@ public class Applicazione extends Application {
     @Override
     public void start(Stage primaryStage) {
         // Ottieni dimensioni dello schermo
-        Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
+        Rectangle2D screenBounds = Screen.getPrimary().getBounds();
         double screenWidth = screenBounds.getWidth();
         double screenHeight = screenBounds.getHeight();
 
@@ -29,7 +29,9 @@ public class Applicazione extends Application {
         imageView.setPreserveRatio(false); // Disabilita il mantenimento delle proporzioni
         imageView.setFitWidth(screenWidth); // Imposta la larghezza dell'immagine a tutta la finestra
         imageView.setFitHeight(screenHeight); // Imposta l'altezza dell'immagine a tutta la finestra
-
+        imageView.setSmooth(true); // Migliora la qualità dell'immagine
+        imageView.setCache(true); // Abilita la cache per migliorare le prestazioni
+        
         // Usando AnchorPane per evitare spazi extra
         AnchorPane root = new AnchorPane();
         root.getChildren().add(imageView);
