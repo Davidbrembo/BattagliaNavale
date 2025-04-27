@@ -3,6 +3,7 @@ package client.view;
 import javafx.application.Application;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
@@ -26,21 +27,25 @@ public class SchermataInizialeView extends Application {
         // Immagine di sfondo
         Image image = new Image("file:resources/battaglia.jpg");
         ImageView imageView = new ImageView(image);
-        imageView.setPreserveRatio(false); // Disabilita il mantenimento delle proporzioni
-        imageView.setFitWidth(screenWidth); // Imposta la larghezza dell'immagine a tutta la finestra
-        imageView.setFitHeight(screenHeight); // Imposta l'altezza dell'immagine a tutta la finestra
-        imageView.setSmooth(true); // Migliora la qualità dell'immagine
-        imageView.setCache(true); // Abilita la cache per migliorare le prestazioni
-        
-        // Usando AnchorPane per evitare spazi extra
-        AnchorPane root = new AnchorPane();
-        root.getChildren().add(imageView);
+        imageView.setPreserveRatio(false);
+        imageView.setFitWidth(screenWidth);
+        imageView.setFitHeight(screenHeight);
+        imageView.setSmooth(true);
+        imageView.setCache(true);
 
-        // Fissiamo i limiti dell'immagine alla finestra
-        AnchorPane.setTopAnchor(imageView, 0.0);
-        AnchorPane.setRightAnchor(imageView, 0.0);
-        AnchorPane.setBottomAnchor(imageView, 0.0);
-        AnchorPane.setLeftAnchor(imageView, 0.0);
+        // Pulsante "Inizia Gioco"
+        Button startButton = new Button("Inizia Gioco");
+        startButton.setStyle("-fx-font-size: 24px; -fx-background-color: #00aaff; -fx-text-fill: white;");
+        startButton.setPrefWidth(300);
+        startButton.setPrefHeight(60);
+
+        // Posizionamento pulsante
+        startButton.setLayoutX((screenWidth - 300) / 2);
+        startButton.setLayoutY(screenHeight - 200);
+
+        // Usando AnchorPane
+        AnchorPane root = new AnchorPane();
+        root.getChildren().addAll(imageView, startButton);
 
         // Crea la scena
         Scene scene = new Scene(root, screenWidth, screenHeight);
@@ -54,8 +59,24 @@ public class SchermataInizialeView extends Application {
         // Setup finestra
         primaryStage.setTitle("Battaglia Navale");
         primaryStage.setScene(scene);
-        primaryStage.setFullScreen(true); // Forza la modalità a schermo intero
+        primaryStage.setFullScreen(true);
         primaryStage.show();
+
+        // Azione al click sul bottone
+        startButton.setOnAction(event -> {
+            mediaPlayer.stop(); // Ferma la musica
+            apriGioco(primaryStage);
+        });
+    }
+
+    // Metodo per aprire la schermata di gioco
+    private void apriGioco(Stage primaryStage) {
+        GiocoView giocoView = new GiocoView();
+        try {
+            giocoView.start(primaryStage);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -63,5 +84,9 @@ public class SchermataInizialeView extends Application {
         if (mediaPlayer != null) {
             mediaPlayer.stop();
         }
+    }
+
+    public static void main(String[] args) {
+        launch(args);
     }
 }
