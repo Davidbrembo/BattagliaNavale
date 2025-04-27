@@ -1,4 +1,4 @@
-package app;
+package client.view;
 
 import javafx.application.Application;
 import javafx.geometry.Rectangle2D;
@@ -12,7 +12,7 @@ import javafx.stage.Screen;
 import javafx.stage.Stage;
 import java.io.File;
 
-public class Applicazione extends Application {
+public class SchermataInizialeView extends Application {
 
     private MediaPlayer mediaPlayer;
 
@@ -63,9 +63,5 @@ public class Applicazione extends Application {
         if (mediaPlayer != null) {
             mediaPlayer.stop();
         }
-    }
-
-    public static void main(String[] args) {
-        launch(args);
     }
 }
