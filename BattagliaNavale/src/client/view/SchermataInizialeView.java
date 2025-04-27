@@ -1,15 +1,14 @@
 package client.view;
 
 import javafx.application.Application;
-import javafx.geometry.Rectangle2D;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.*;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
-import javafx.stage.Screen;
 import javafx.stage.Stage;
 import java.io.File;
 
@@ -19,36 +18,51 @@ public class SchermataInizialeView extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        // Ottieni dimensioni dello schermo
-        Rectangle2D screenBounds = Screen.getPrimary().getBounds();
-        double screenWidth = screenBounds.getWidth();
-        double screenHeight = screenBounds.getHeight();
-
         // Immagine di sfondo
-        Image image = new Image("file:resources/battaglia.jpg");
-        ImageView imageView = new ImageView(image);
-        imageView.setPreserveRatio(false);
-        imageView.setFitWidth(screenWidth);
-        imageView.setFitHeight(screenHeight);
-        imageView.setSmooth(true);
-        imageView.setCache(true);
+        Image backgroundImage = new Image("file:resources/battaglia.jpg");
+        ImageView backgroundImageView = new ImageView(backgroundImage);
+        backgroundImageView.setPreserveRatio(false);
+        backgroundImageView.setFitWidth(1920);
+        backgroundImageView.setFitHeight(1080);
 
-        // Pulsante "Inizia Gioco"
+        // Pulsanti
         Button startButton = new Button("Inizia Gioco");
-        startButton.setStyle("-fx-font-size: 24px; -fx-background-color: #00aaff; -fx-text-fill: white;");
-        startButton.setPrefWidth(300);
-        startButton.setPrefHeight(60);
+        startButton.getStyleClass().add("button");
 
-        // Posizionamento pulsante
-        startButton.setLayoutX((screenWidth - 300) / 2);
-        startButton.setLayoutY(screenHeight - 200);
+        Button optionsButton = new Button("Opzioni");
+        optionsButton.getStyleClass().add("button");
 
-        // Usando AnchorPane
-        AnchorPane root = new AnchorPane();
-        root.getChildren().addAll(imageView, startButton);
+        Button exitButton = new Button("Esci");
+        exitButton.getStyleClass().add("button");
+
+        // Azioni dei pulsanti
+        startButton.setOnAction(e -> {
+            mediaPlayer.stop();
+            apriGioco(primaryStage);
+        });
+
+        optionsButton.setOnAction(e -> {
+        	apriOpzioni(primaryStage);
+        });
+
+        exitButton.setOnAction(e -> {
+            mediaPlayer.stop();
+            primaryStage.close();
+        });
+
+        // Layout dei pulsanti
+        VBox buttonLayout = new VBox(20, startButton, optionsButton, exitButton);
+        buttonLayout.setAlignment(Pos.CENTER);
+
+        // StackPane per sovrapporre l'immagine di sfondo e i pulsanti
+        StackPane root = new StackPane();
+        root.getChildren().addAll(backgroundImageView, buttonLayout);
 
         // Crea la scena
-        Scene scene = new Scene(root, screenWidth, screenHeight);
+        Scene scene = new Scene(root, 1920, 1080);
+        scene.getStylesheets().add(getClass().getResource("/warstyle.css").toExternalForm());
+
+
 
         // Audio
         Media sound = new Media(new File("resources/audio_battaglia.mp3").toURI().toString());
@@ -61,12 +75,6 @@ public class SchermataInizialeView extends Application {
         primaryStage.setScene(scene);
         primaryStage.setFullScreen(true);
         primaryStage.show();
-
-        // Azione al click sul bottone
-        startButton.setOnAction(event -> {
-            mediaPlayer.stop(); // Ferma la musica
-            apriGioco(primaryStage);
-        });
     }
 
     // Metodo per aprire la schermata di gioco
@@ -78,6 +86,16 @@ public class SchermataInizialeView extends Application {
             e.printStackTrace();
         }
     }
+
+    // Metodo per aprire la schermata delle opzioni
+    private void apriOpzioni(Stage primaryStage) {
+		OpzioniView opzioniView = new OpzioniView();
+		try {
+			opzioniView.start(primaryStage);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 
     @Override
     public void stop() {

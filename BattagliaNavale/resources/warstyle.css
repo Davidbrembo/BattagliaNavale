@@ -1,0 +1,24 @@
+.button {
+    -fx-background-color: linear-gradient(#3a3a3a, #1c1c1c);
+    -fx-text-fill: #d4af37; /* Colore oro militare */
+    -fx-font-family: "Impact";
+    -fx-font-size: 20px;
+    -fx-background-radius: 5;
+    -fx-border-color: #d4af37;
+    -fx-border-width: 2;
+    -fx-border-radius: 5;
+    -fx-padding: 10 20 10 20;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.75), 4, 0, 0, 1);
+}
+
+.button:hover {
+    -fx-background-color: linear-gradient(#4a4a4a, #2c2c2c);
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #ffffff;
+}
+
+.button:pressed {
+    -fx-background-color: linear-gradient(#2c2c2c, #1a1a1a);
+    -fx-text-fill: #ff0000;
+    -fx-border-color: #ff0000;
+}
