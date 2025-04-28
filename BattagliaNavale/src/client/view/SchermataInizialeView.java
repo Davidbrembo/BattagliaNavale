@@ -1,15 +1,19 @@
 package client.view;
 
+import javafx.animation.ScaleTransition;
 import javafx.application.Application;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.stage.Stage;
+import javafx.util.Duration;
+
 import java.io.File;
 
 public class SchermataInizialeView extends Application {
@@ -18,12 +22,20 @@ public class SchermataInizialeView extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        // Immagine di sfondo
-        Image backgroundImage = new Image("file:resources/battaglia.jpg");
-        ImageView backgroundImageView = new ImageView(backgroundImage);
-        backgroundImageView.setPreserveRatio(false);
-        backgroundImageView.setFitWidth(1920);
-        backgroundImageView.setFitHeight(1080);
+    	// Immagine di sfondo
+    	Image backgroundImage = new Image("file:resources/battaglia.jpg");
+    	ImageView backgroundImageView = new ImageView(backgroundImage);
+    	backgroundImageView.setPreserveRatio(false);
+    	backgroundImageView.setFitWidth(1920);
+    	backgroundImageView.setFitHeight(1080);
+
+    	// GIF di nebbia
+    	Image fogImage = new Image("file:resources/nebbia.gif"); // La tua GIF di nebbia
+    	ImageView fogImageView = new ImageView(fogImage);
+    	fogImageView.setPreserveRatio(false);
+    	fogImageView.setFitWidth(1920);
+    	fogImageView.setFitHeight(1080);
+    	fogImageView.setOpacity(0.2); // Nebbia trasparente (modifica se vuoi più o meno nebbia)
 
         // Pulsanti
         Button startButton = new Button("Inizia Gioco");
@@ -34,6 +46,11 @@ public class SchermataInizialeView extends Application {
 
         Button exitButton = new Button("Esci");
         exitButton.getStyleClass().add("button");
+        
+     // Applica l'effetto di pulsazione ai bottoni
+        applyPulseEffect(startButton);
+        applyPulseEffect(optionsButton);
+        applyPulseEffect(exitButton);
 
         // Azioni dei pulsanti
         startButton.setOnAction(e -> {
@@ -49,20 +66,27 @@ public class SchermataInizialeView extends Application {
             mediaPlayer.stop();
             primaryStage.close();
         });
+        
+     // Titolo
+        Label titolo = new Label("SKIBIDI TURETS ZIOPERA");
+        titolo.getStyleClass().add("titolo");
 
         // Layout dei pulsanti
         VBox buttonLayout = new VBox(20, startButton, optionsButton, exitButton);
         buttonLayout.setAlignment(Pos.CENTER);
 
-        // StackPane per sovrapporre l'immagine di sfondo e i pulsanti
+        // Layout che contiene titolo sopra e pulsanti sotto
+        VBox layout = new VBox(100, titolo, buttonLayout);
+        layout.setAlignment(Pos.TOP_CENTER);
+        layout.setTranslateY(100); // sposta tutto un po' più giù
+
+        // StackPane finale: sfondo + nebbia + layout
         StackPane root = new StackPane();
-        root.getChildren().addAll(backgroundImageView, buttonLayout);
+        root.getChildren().addAll(backgroundImageView, fogImageView, layout);
 
         // Crea la scena
         Scene scene = new Scene(root, 1920, 1080);
         scene.getStylesheets().add(getClass().getResource("/warstyle.css").toExternalForm());
-
-
 
         // Audio
         Media sound = new Media(new File("resources/audio_battaglia.mp3").toURI().toString());
@@ -96,6 +120,17 @@ public class SchermataInizialeView extends Application {
 			e.printStackTrace();
 		}
 	}
+    
+    private void applyPulseEffect(Button button) {
+        ScaleTransition st = new ScaleTransition(Duration.seconds(1.5), button);
+        st.setFromX(1.0);
+        st.setFromY(1.0);
+        st.setToX(1.05); // leggero ingrandimento
+        st.setToY(1.05);
+        st.setAutoReverse(true);
+        st.setCycleCount(ScaleTransition.INDEFINITE);
+        st.play();
+    }
 
     @Override
     public void stop() {
