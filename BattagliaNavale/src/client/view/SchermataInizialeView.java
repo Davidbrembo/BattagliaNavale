@@ -68,7 +68,7 @@ public class SchermataInizialeView extends Application {
         });
         
      // Titolo
-        Label titolo = new Label("SKIBIDI TURETS ZIOPERA");
+        Label titolo = new Label("BATTAGLIA NAVALE");
         titolo.getStyleClass().add("titolo");
 
         // Layout dei pulsanti
