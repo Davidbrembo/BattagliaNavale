@@ -25,8 +25,8 @@
 
 .titolo {
     -fx-font-family: "Impact", sans-serif;
-    -fx-font-size: 70px;
-    -fx-text-fill: gold;
+    -fx-font-size: 80px;
+    -fx-text-fill: white;
     -fx-stroke: black;
     -fx-stroke-width: 2;
     -fx-padding: 20;
@@ -35,6 +35,5 @@
     -fx-border-color: gold;
     -fx-border-width: 3;
     -fx-border-radius: 15;
+    -fx-effect: dropshadow(gaussian, black, 10, 0, 0, 0);
 }
-
-
