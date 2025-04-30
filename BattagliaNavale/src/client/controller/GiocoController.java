@@ -11,6 +11,7 @@ public class GiocoController {
 
     private static GiocoController instance;
     private final ClientSocket clientSocket;
+    private String nomeGiocatore;
 
     private static final Logger logger = Logger.getLogger(GiocoController.class.getName());
 
@@ -36,14 +37,20 @@ public class GiocoController {
         }
     }
 
-    public void inviaMessaggio(Messaggio messaggio) {
-        clientSocket.inviaMessaggio(messaggio);
-    }
 
+    public void inviaMessaggio(Messaggio messaggio) {
+        clientSocket.inviaMessaggio(messaggio); // IOException non serve più catcharlo
+    }
 
     public ClientSocket getClientSocket() {
         return clientSocket;
     }
-    
-    
+
+    public String getNomeGiocatore() {
+        return nomeGiocatore;
+    }
+
+    public void setNomeGiocatore(String nomeGiocatore) {
+        this.nomeGiocatore = nomeGiocatore;
+    }
 }
