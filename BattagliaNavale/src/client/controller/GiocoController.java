@@ -1,22 +1,33 @@
 package client.controller;
 
-import java.io.IOException;
 import client.network.ClientSocket;
+import shared.protocol.Messaggio;
+
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class GiocoController {
 
-    private ClientSocket clientSocket;
+    private static GiocoController instance;
+    private final ClientSocket clientSocket;
+
+    private static final Logger logger = Logger.getLogger(GiocoController.class.getName());
 
     public GiocoController() {
-        clientSocket = new ClientSocket();
+        clientSocket = ClientSocket.getInstance();
+    }
+
+    public static GiocoController getInstance() {
+        if (instance == null) {
+            instance = new GiocoController();
+        }
+        return instance;
     }
 
     public boolean iniziaConnessione() {
         try {
-        	//su un pc starti server (e se vuoi anche client)
-        	//su questo pc il client può tenere (in clientSocket.connect) localhost oppure l'ip che da' ipconfig dopo ipv4
-        	//sugli altri pc devi mettere per forza l'ip DEL SERVER
-            clientSocket.connect("192.168.1.156", 12345);
+            clientSocket.connect("localhost", 12345);
             System.out.println("[CLIENT] Connessione avvenuta.");
             return true;
         } catch (IOException e) {
@@ -25,4 +36,14 @@ public class GiocoController {
         }
     }
 
+    public void inviaMessaggio(Messaggio messaggio) {
+        clientSocket.inviaMessaggio(messaggio);
+    }
+
+
+    public ClientSocket getClientSocket() {
+        return clientSocket;
+    }
+    
+    
 }

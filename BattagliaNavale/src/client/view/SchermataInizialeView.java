@@ -14,79 +14,77 @@ import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import server.network.ClientHandler;
+
 import shared.protocol.Comando;
 import shared.protocol.Messaggio;
+import client.controller.GiocoController;
 
 import java.io.File;
 import java.util.Optional;
 
 public class SchermataInizialeView extends Application {
 
-    private static MediaPlayer mediaPlayer; // MediaPlayer statico
-    private static boolean musicaInRiproduzione = false; // Flag statico per la musica
-    ClientHandler clientHandler;
+    private static MediaPlayer mediaPlayer;
+    private static boolean musicaInRiproduzione = false;
+    private GiocoController giocoController;
 
     @Override
     public void start(Stage primaryStage) {
-        // Immagine di sfondo
+        giocoController = GiocoController.getInstance();
+
+        // Connessione al server
+        boolean connesso = giocoController.iniziaConnessione();
+        if (!connesso) {
+            System.out.println("Errore di connessione al server. L'app verrà chiusa.");
+            return;
+        }
+
+        // Sfondo
         Image backgroundImage = new Image("file:resources/battaglia.jpg");
         ImageView backgroundImageView = new ImageView(backgroundImage);
         backgroundImageView.setPreserveRatio(false);
         backgroundImageView.setFitWidth(1920);
         backgroundImageView.setFitHeight(1080);
 
-        // GIF di nebbia
+        // GIF nebbia
         Image fogImage = new Image("file:resources/nebbia.gif");
         ImageView fogImageView = new ImageView(fogImage);
         fogImageView.setPreserveRatio(false);
         fogImageView.setFitWidth(1920);
         fogImageView.setFitHeight(1080);
         fogImageView.setOpacity(0.2);
-        
+
+        // Input nome giocatore
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Scegli un nome");
         dialog.setHeaderText("Inserisci il tuo nome:");
         Optional<String> result = dialog.showAndWait();
         result.ifPresent(nome -> {
-            // Salva il nome e invialo al server
             Messaggio msg = new Messaggio(Comando.INVIA_NOME, nome);
-            
-			clientHandler.inviaMessaggio(msg);
+            giocoController.inviaMessaggio(msg);
         });
-
 
         // Pulsanti
         Button startButton = new Button("Inizia Gioco");
-        startButton.getStyleClass().add("button");
-
         Button optionsButton = new Button("Opzioni");
-        optionsButton.getStyleClass().add("button");
-
         Button exitButton = new Button("Esci");
+        startButton.getStyleClass().add("button");
+        optionsButton.getStyleClass().add("button");
         exitButton.getStyleClass().add("button");
 
-        // Applica l'effetto di pulsazione ai bottoni
         applyPulseEffect(startButton);
         applyPulseEffect(optionsButton);
         applyPulseEffect(exitButton);
 
-        // Azioni dei pulsanti
         startButton.setOnAction(e -> {
-            if (mediaPlayer != null) {
-                mediaPlayer.stop();
-                musicaInRiproduzione = false;
-            }
+            stopMusica();
             apriGioco(primaryStage);
         });
 
         optionsButton.setOnAction(e -> apriOpzioni(primaryStage));
 
         exitButton.setOnAction(e -> {
-            if (mediaPlayer != null) {
-                mediaPlayer.stop();
-                musicaInRiproduzione = false;
-            }
+            stopMusica();
             primaryStage.close();
         });
 
@@ -107,7 +105,7 @@ public class SchermataInizialeView extends Application {
         Scene scene = new Scene(root, 1920, 1080);
         scene.getStylesheets().add(getClass().getResource("/warstyle.css").toExternalForm());
 
-        // Audio: gestisci la musica in modo statico
+        // Audio
         if (mediaPlayer == null) {
             Media sound = new Media(new File("resources/audio_battaglia.mp3").toURI().toString());
             mediaPlayer = new MediaPlayer(sound);
@@ -119,14 +117,12 @@ public class SchermataInizialeView extends Application {
             musicaInRiproduzione = true;
         }
 
-        // Setup finestra
         primaryStage.setTitle("Battaglia Navale");
         primaryStage.setScene(scene);
         primaryStage.setFullScreen(true);
         primaryStage.show();
     }
 
-    // Metodo per aprire la schermata di gioco
     private void apriGioco(Stage primaryStage) {
         GiocoView giocoView = new GiocoView();
         try {
@@ -136,7 +132,6 @@ public class SchermataInizialeView extends Application {
         }
     }
 
-    // Metodo per aprire la schermata delle opzioni
     private void apriOpzioni(Stage primaryStage) {
         OpzioniView opzioniView = new OpzioniView();
         try {
@@ -157,12 +152,16 @@ public class SchermataInizialeView extends Application {
         st.play();
     }
 
-    @Override
-    public void stop() {
+    private void stopMusica() {
         if (mediaPlayer != null) {
             mediaPlayer.stop();
             musicaInRiproduzione = false;
         }
+    }
+
+    @Override
+    public void stop() {
+        stopMusica();
     }
 
     public static void main(String[] args) {

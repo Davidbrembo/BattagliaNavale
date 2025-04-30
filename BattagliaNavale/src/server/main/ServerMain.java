@@ -4,7 +4,7 @@ import server.network.ServerSocketManager;
 
 public class ServerMain {
     public static void main(String[] args) {
-        ServerSocketManager server = new ServerSocketManager(12345); // porta a tua scelta
-        server.start();
+        ServerSocketManager server = new ServerSocketManager(); // porta a tua scelta
+        server.start(12345);
     }
 }

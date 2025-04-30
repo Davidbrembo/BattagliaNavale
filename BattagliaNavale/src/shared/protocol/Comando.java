@@ -7,5 +7,6 @@ public enum Comando {
     INIZIA_PARTITA,
     FINE_PARTITA,
     MESSAGGIO_CHAT,
-    INVIA_NOME
+    INVIA_NOME,
+    DISCONNETTI
 }

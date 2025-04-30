@@ -2,67 +2,66 @@ package server.network;
 
 import shared.protocol.Comando;
 import shared.protocol.Messaggio;
+import utility.LogUtility;
 
-import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
-public class ClientHandler extends Thread {
-    private Socket socket;
+public class ClientHandler implements Runnable {
+
+    private final Socket clientSocket;
     private ObjectInputStream in;
     private ObjectOutputStream out;
-    private String nomeGiocatore;
-    Messaggio msg;
-    
+
     public ClientHandler(Socket socket) {
-        this.socket = socket;
+        this.clientSocket = socket;
     }
 
     @Override
     public void run() {
         try {
-            System.out.println("Nuovo client connesso: " + socket.getInetAddress());
-            
-			if (msg.getComando() == Comando.INVIA_NOME) {
-                nomeGiocatore = (String) msg.getContenuto();
-                System.out.println("Giocatore ha scelto il nome: " + nomeGiocatore);
+            out = new ObjectOutputStream(clientSocket.getOutputStream());
+            in = new ObjectInputStream(clientSocket.getInputStream());
+
+            LogUtility.info("[SERVER] Nuovo client connesso da " + clientSocket.getInetAddress());
+
+            Messaggio msg;
+            while ((msg = (Messaggio) in.readObject()) != null) {
+                LogUtility.info("[SERVER] Ricevuto messaggio: " + msg.getComando() + " - " + msg.getContenuto());
+
+                switch (msg.getComando()) {
+                    case INVIA_NOME:
+                        String nome = (String) msg.getContenuto();
+                        LogUtility.info("[SERVER] Nome ricevuto: " + nome);
+                        break;
+
+                    case DISCONNETTI:
+                        LogUtility.info("[SERVER] Il client ha richiesto la disconnessione.");
+                        closeConnection();
+                        return;
+
+                    default:
+                        LogUtility.info("[SERVER] Comando non riconosciuto.");
+                        break;
+                }
             }
 
-            in = new ObjectInputStream(socket.getInputStream());
-            out = new ObjectOutputStream(socket.getOutputStream());
+        } catch (Exception e) {
+            LogUtility.error("[SERVER] Errore nella gestione del client: " + e.getMessage());
+        } finally {
+            closeConnection();
+        }
+    }
 
-            while (true) {
-                Messaggio msg = (Messaggio) in.readObject();
-                System.out.println("Messaggio ricevuto: " + msg.getComando());
-
-                // ... (gestione dei messaggi)
+    private void closeConnection() {
+        try {
+            if (clientSocket != null && !clientSocket.isClosed()) {
+                clientSocket.close();
+                LogUtility.info("[SERVER] Connessione con il client chiusa.");
             }
-
-        } catch (IOException | ClassNotFoundException e) {
-            System.out.println("Errore con il client: " + e.getMessage());
-        }
-    }
-
-
-    public void inviaMessaggio(Messaggio msg) {
-        try {
-            out.writeObject(msg);
-            out.flush();
         } catch (Exception e) {
-            e.printStackTrace();
+            LogUtility.error("[SERVER] Errore nella chiusura della connessione: " + e.getMessage());
         }
     }
-
-    public void stopHandler() {
-        try {
-            if (in != null) in.close();
-            if (out != null) out.close();
-            if (socket != null) socket.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-    
-    
 }
