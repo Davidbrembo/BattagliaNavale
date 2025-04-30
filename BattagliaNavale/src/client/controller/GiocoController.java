@@ -13,7 +13,10 @@ public class GiocoController {
 
     public boolean iniziaConnessione() {
         try {
-            clientSocket.connect("localhost", 12345);
+        	//su un pc starti server (e se vuoi anche client)
+        	//su questo pc il client può tenere (in clientSocket.connect) localhost oppure l'ip che da' ipconfig dopo ipv4
+        	//sugli altri pc devi mettere per forza l'ip DEL SERVER
+            clientSocket.connect("192.168.1.156", 12345);
             System.out.println("[CLIENT] Connessione avvenuta.");
             return true;
         } catch (IOException e) {
