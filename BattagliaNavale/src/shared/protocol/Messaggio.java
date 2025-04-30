@@ -4,7 +4,11 @@ import java.io.Serializable;
 
 public class Messaggio implements Serializable {
 
-    private Comando comando;
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = -8349979309953580592L;
+	private Comando comando;
     private Object payload;    // es. Coordinate
     private String extra;      // es. "Colpito", "Mancato", etc.
 

@@ -11,7 +11,6 @@ public class ClientHandler extends Thread {
     private Socket socket;
     private ObjectInputStream in;
     private ObjectOutputStream out;
-    private boolean running = true;
 
     public ClientHandler(Socket socket) {
         this.socket = socket;
@@ -49,7 +48,6 @@ public class ClientHandler extends Thread {
 
     public void stopHandler() {
         try {
-            running = false;
             if (in != null) in.close();
             if (out != null) out.close();
             if (socket != null) socket.close();

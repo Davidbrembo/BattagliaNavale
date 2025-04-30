@@ -28,3 +28,7 @@ apr 30, 2025 10:05:57 AM utility.LogUtility info
 INFO: [SERVER] In ascolto sulla porta 12345
 apr 30, 2025 10:06:03 AM utility.LogUtility info
 INFO: [SERVER] Nuovo client connesso da /127.0.0.1
+apr 30, 2025 10:28:22 AM utility.LogUtility info
+INFO: [SERVER] In ascolto sulla porta 12345
+apr 30, 2025 10:28:27 AM utility.LogUtility info
+INFO: [SERVER] Nuovo client connesso da /127.0.0.1
