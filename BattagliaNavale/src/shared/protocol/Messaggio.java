@@ -3,30 +3,19 @@ package shared.protocol;
 import java.io.Serializable;
 
 public class Messaggio implements Serializable {
+    private Comando comando;
+    private Object contenuto;
 
-    /**
-	 * 
-	 */
-	private static final long serialVersionUID = -8349979309953580592L;
-	private Comando comando;
-    private Object payload;    // es. Coordinate
-    private String extra;      // es. "Colpito", "Mancato", etc.
-
-    public Messaggio(Comando comando, Object payload, String extra) {
+    public Messaggio(Comando comando, Object contenuto) {
         this.comando = comando;
-        this.payload = payload;
-        this.extra = extra;
+        this.contenuto = contenuto;
     }
 
     public Comando getComando() {
         return comando;
     }
 
-    public Object getPayload() {
-        return payload;
-    }
-
-    public String getExtra() {
-        return extra;
+    public Object getContenuto() {
+        return contenuto;
     }
 }

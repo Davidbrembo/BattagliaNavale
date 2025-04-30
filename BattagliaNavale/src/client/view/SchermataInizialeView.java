@@ -6,6 +6,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
@@ -13,12 +14,18 @@ import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import server.network.ClientHandler;
+import shared.protocol.Comando;
+import shared.protocol.Messaggio;
+
 import java.io.File;
+import java.util.Optional;
 
 public class SchermataInizialeView extends Application {
 
     private static MediaPlayer mediaPlayer; // MediaPlayer statico
     private static boolean musicaInRiproduzione = false; // Flag statico per la musica
+    ClientHandler clientHandler;
 
     @Override
     public void start(Stage primaryStage) {
@@ -36,6 +43,18 @@ public class SchermataInizialeView extends Application {
         fogImageView.setFitWidth(1920);
         fogImageView.setFitHeight(1080);
         fogImageView.setOpacity(0.2);
+        
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Scegli un nome");
+        dialog.setHeaderText("Inserisci il tuo nome:");
+        Optional<String> result = dialog.showAndWait();
+        result.ifPresent(nome -> {
+            // Salva il nome e invialo al server
+            Messaggio msg = new Messaggio(Comando.INVIA_NOME, nome);
+            
+			clientHandler.inviaMessaggio(msg);
+        });
+
 
         // Pulsanti
         Button startButton = new Button("Inizia Gioco");

@@ -6,5 +6,6 @@ public enum Comando {
     RISPOSTA,  // per la risposta alla mossa (colpito, mancato, affondato)
     INIZIA_PARTITA,
     FINE_PARTITA,
-    MESSAGGIO_CHAT
+    MESSAGGIO_CHAT,
+    INVIA_NOME
 }

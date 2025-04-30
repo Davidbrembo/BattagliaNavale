@@ -1,5 +1,6 @@
 package server.network;
 
+import shared.protocol.Comando;
 import shared.protocol.Messaggio;
 
 import java.io.IOException;
@@ -11,7 +12,9 @@ public class ClientHandler extends Thread {
     private Socket socket;
     private ObjectInputStream in;
     private ObjectOutputStream out;
-
+    private String nomeGiocatore;
+    Messaggio msg;
+    
     public ClientHandler(Socket socket) {
         this.socket = socket;
     }
@@ -20,6 +23,11 @@ public class ClientHandler extends Thread {
     public void run() {
         try {
             System.out.println("Nuovo client connesso: " + socket.getInetAddress());
+            
+			if (msg.getComando() == Comando.INVIA_NOME) {
+                nomeGiocatore = (String) msg.getContenuto();
+                System.out.println("Giocatore ha scelto il nome: " + nomeGiocatore);
+            }
 
             in = new ObjectInputStream(socket.getInputStream());
             out = new ObjectOutputStream(socket.getOutputStream());
