@@ -8,5 +8,6 @@ public class ClientMain {
     public static void main(String[] args) {
         GiocoController controller = new GiocoController();
         controller.iniziaConnessione();  // ← Deve essere presente
+        Application.launch(SchermataInizialeView.class, args);
     }
 }
