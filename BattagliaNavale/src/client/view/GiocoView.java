@@ -23,7 +23,7 @@ public class GiocoView extends Application {
 
         // Etichetta di richiesta nome
         Label promptLabel = new Label("Inserisci il tuo nome:");
-        promptLabel.getStyleClass().add("prompt-label");
+        promptLabel.getStyleClass().add("impostazione-label");
 
         // Campo di testo per l'inserimento del nome
         TextField nomeField = new TextField();

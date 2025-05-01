@@ -5,10 +5,12 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.effect.ColorAdjust;
+import javafx.scene.effect.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import utility.Impostazioni;
@@ -32,12 +34,25 @@ public class OpzioniView {
         // Slider volume
         Label volumeLabel = new Label("Volume");
         volumeLabel.getStyleClass().add("impostazione-label");
-        Slider volumeSlider = new Slider(0, 100, 50);
+        Slider volumeSlider = new Slider(0, 100, 25);
+        volumeSlider.setPrefWidth(300);  // Imposta la larghezza preferita per il volume
+        volumeSlider.setMaxWidth(300);   // Forza la larghezza massima dello slider
 
         // Slider luminosità
         Label luminositaLabel = new Label("Luminosità");
         luminositaLabel.getStyleClass().add("impostazione-label");
         Slider luminositaSlider = new Slider(0, 100, 50);
+        luminositaSlider.setPrefWidth(300);  // Imposta la larghezza preferita per la luminosità
+        luminositaSlider.setMaxWidth(300);   // Forza la larghezza massima dello slider
+
+        // Aggiungere il quadrato sfocato dietro gli slider
+        Rectangle backgroundRectangle = new Rectangle(350, 180);  // Aumentato per coprire tutti gli slider e i label
+        backgroundRectangle.setArcWidth(20);  // Angoli arrotondati
+        backgroundRectangle.setArcHeight(20);
+        backgroundRectangle.setFill(Color.rgb(0, 0, 0, 0.8));  // Colore scuro semi-trasparente
+
+        // Aggiungere un offset verticale per spostare il rettangolo più in basso
+        backgroundRectangle.setTranslateY(20);  // Sposta il rettangolo verso il basso di 50 pixel
 
         // Pulsanti
         Button applicaButton = new Button("Applica");
@@ -99,21 +114,32 @@ public class OpzioniView {
             }
         });
 
+        // Creare un HBox per i pulsanti "Applica" e "Reset" uno accanto all'altro
+        HBox hboxButtons = new HBox(15, applicaButton, resetButton);
+        hboxButtons.setAlignment(Pos.CENTER);
+
+        // Impostiamo un VBox per gestire gli spazi tra i componenti
         VBox vbox = new VBox(15, titolo,
                 volumeLabel, volumeSlider,
                 luminositaLabel, luminositaSlider,
-                applicaButton, resetButton, tornaButton
+                hboxButtons, tornaButton
         );
         vbox.setAlignment(Pos.CENTER);
         vbox.setPadding(new Insets(20));
 
+        // Posizioniamo il quadrato sfocato dietro gli slider
+        StackPane stackSlider = new StackPane();
+        stackSlider.getChildren().addAll(backgroundRectangle, vbox);
+
+        // Creiamo lo StackPane con il background
         root = new StackPane();
-        root.getChildren().addAll(backgroundImageView, vbox);
+        root.getChildren().addAll(backgroundImageView, stackSlider);
         root.getStyleClass().add("tema-scuro");
 
         // Carica le impostazioni salvate
         caricaImpostazioni(volumeSlider, luminositaSlider);
 
+        // Crea la scena
         Scene scene = new Scene(root, 1920, 1080);
         try {
             scene.getStylesheets().add(getClass().getResource("/warstyle.css").toExternalForm());
