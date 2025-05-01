@@ -6,7 +6,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.TextInputDialog;
+import javafx.scene.effect.ColorAdjust;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
@@ -14,17 +14,16 @@ import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import shared.protocol.Comando;
-import shared.protocol.Messaggio;
-import client.controller.GiocoController;
+import utility.Impostazioni;
+import utility.ImpostazioniManager;
 
 import java.io.File;
-import java.util.Optional;
 
 public class SchermataInizialeView extends Application {
 
     private static MediaPlayer mediaPlayer;
     private static boolean musicaInRiproduzione = false;
+    private StackPane root; // usato per applicare la luminosità
 
     @Override
     public void start(Stage primaryStage) {
@@ -40,16 +39,6 @@ public class SchermataInizialeView extends Application {
         fogImageView.setFitWidth(1920);
         fogImageView.setFitHeight(1080);
         fogImageView.setOpacity(0.2);
-
-        TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("Scegli un nome");
-        dialog.setHeaderText("Inserisci il tuo nome:");
-        Optional<String> result = dialog.showAndWait();
-        result.ifPresent(nome -> {
-            GiocoController.getInstance().setNomeGiocatore(nome); // Salva il nome
-            Messaggio msg = new Messaggio(Comando.INVIA_NOME, nome);
-            GiocoController.getInstance().inviaMessaggio(msg);
-        });
 
         Button startButton = new Button("Inizia Gioco");
         Button optionsButton = new Button("Opzioni");
@@ -84,16 +73,25 @@ public class SchermataInizialeView extends Application {
         layout.setAlignment(Pos.TOP_CENTER);
         layout.setTranslateY(100);
 
-        StackPane root = new StackPane();
+        root = new StackPane();
         root.getChildren().addAll(backgroundImageView, fogImageView, layout);
 
         Scene scene = new Scene(root, 1920, 1080);
         scene.getStylesheets().add(getClass().getResource("/warstyle.css").toExternalForm());
 
-        if (mediaPlayer == null) {
-            Media sound = new Media(new File("resources/audio_battaglia.mp3").toURI().toString());
-            mediaPlayer = new MediaPlayer(sound);
-            mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+        // Applica volume e luminosità dalle impostazioni salvate
+        Impostazioni impostazioni = ImpostazioniManager.caricaImpostazioni();
+        if (impostazioni != null) {
+            // Volume
+            if (mediaPlayer == null) {
+                Media sound = new Media(new File("resources/audio_battaglia.mp3").toURI().toString());
+                mediaPlayer = new MediaPlayer(sound);
+                mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+            }
+            mediaPlayer.setVolume(impostazioni.getVolume() / 100.0);
+
+            // Luminosità
+            applicaLuminosita(impostazioni.getLuminosita());
         }
 
         if (!musicaInRiproduzione) {
@@ -105,6 +103,13 @@ public class SchermataInizialeView extends Application {
         primaryStage.setScene(scene);
         primaryStage.setFullScreen(true);
         primaryStage.show();
+    }
+
+    private void applicaLuminosita(double percentuale) {
+        double brightness = (percentuale - 50) / 50.0; // da -1 a +1
+        ColorAdjust regolazione = new ColorAdjust();
+        regolazione.setBrightness(brightness);
+        root.setEffect(regolazione);
     }
 
     private void apriGioco(Stage primaryStage) {
@@ -148,7 +153,7 @@ public class SchermataInizialeView extends Application {
         stopMusica();
     }
 
-    public static void main(String[] args) {
-        launch(args);
+    public static MediaPlayer getMediaPlayer() {
+        return mediaPlayer;
     }
 }

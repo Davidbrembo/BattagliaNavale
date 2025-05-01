@@ -4,16 +4,12 @@ import client.network.ClientSocket;
 import shared.protocol.Messaggio;
 
 import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class GiocoController {
 
     private static GiocoController instance;
     private final ClientSocket clientSocket;
     private String nomeGiocatore;
-
-    private static final Logger logger = Logger.getLogger(GiocoController.class.getName());
 
     public GiocoController() {
         clientSocket = ClientSocket.getInstance();
