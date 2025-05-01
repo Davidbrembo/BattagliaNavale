@@ -30,6 +30,7 @@ public class OpzioniView {
         // Titolo
         Label titolo = new Label("OPZIONI");
         titolo.getStyleClass().add("titolo");
+        titolo.setTranslateY(-80);  // Sposta il titolo verso l'alto di 50 pixel
 
         // Slider volume
         Label volumeLabel = new Label("Volume");
@@ -58,6 +59,10 @@ public class OpzioniView {
         Button applicaButton = new Button("Applica");
         Button resetButton = new Button("Reset");
         Button tornaButton = new Button("Torna al Menu");
+        
+        applicaButton.setTranslateY(30);  // Sposta il pulsante "Applica" verso il basso di 20 pixel
+        resetButton.setTranslateY(30);    // Sposta il pulsante "Reset" verso il basso di 20 pixel
+        tornaButton.setTranslateY(30);    // Sposta il pulsante "Torna al Menu" verso il basso di 20 pixel
 
         Button[] buttons = {applicaButton, resetButton, tornaButton};
         for (Button btn : buttons) {
