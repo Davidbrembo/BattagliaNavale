@@ -42,7 +42,7 @@ public class OpzioniView {
         // Slider luminosità
         Label luminositaLabel = new Label("Luminosità");
         luminositaLabel.getStyleClass().add("impostazione-label");
-        Slider luminositaSlider = new Slider(0, 100, 50);
+        Slider luminositaSlider = new Slider(30, 60, 45);
         luminositaSlider.setPrefWidth(300);  // Imposta la larghezza preferita per la luminosità
         luminositaSlider.setMaxWidth(300);   // Forza la larghezza massima dello slider
 
@@ -92,7 +92,7 @@ public class OpzioniView {
         // Pulsante Reset
         resetButton.setOnAction(e -> {
             volumeSlider.setValue(50);
-            luminositaSlider.setValue(50);
+            luminositaSlider.setValue(45);
 
             Impostazioni impostazioni = new Impostazioni();
             impostazioni.setVolume(50);
@@ -139,7 +139,6 @@ public class OpzioniView {
         // Creiamo lo StackPane con il background
         root = new StackPane();
         root.getChildren().addAll(backgroundImageView, stackSlider);
-        root.getStyleClass().add("tema-scuro");
 
         // Carica le impostazioni salvate
         caricaImpostazioni(volumeSlider, luminositaSlider);
