@@ -14,7 +14,7 @@ public class ClientSocket {
     private ObjectInputStream in;
 
     private ClientSocket() {
-        // Costruttore privato per singleton
+        // Costruttore privato per implementare il pattern Singleton
     }
 
     public static ClientSocket getInstance() {
@@ -24,6 +24,7 @@ public class ClientSocket {
         return instance;
     }
 
+    // Connessione al server
     public void connect(String host, int port) throws IOException {
         socket = new Socket(host, port);
         out = new ObjectOutputStream(socket.getOutputStream());
@@ -31,6 +32,7 @@ public class ClientSocket {
         LogUtility.info("[CLIENT] Connesso al server su " + host + ":" + port);
     }
 
+    // Invia un messaggio al server
     public void inviaMessaggio(Messaggio msg) {
         try {
             if (out != null) {
@@ -44,6 +46,7 @@ public class ClientSocket {
         }
     }
 
+    // Ricevi un messaggio dal server
     public Messaggio riceviMessaggio() {
         try {
             if (in != null) {
@@ -58,6 +61,17 @@ public class ClientSocket {
         }
     }
 
+    // Getter per l'input stream
+    public ObjectInputStream getInputStream() {
+        return in;
+    }
+
+    // Getter per l'output stream
+    public ObjectOutputStream getOutputStream() {
+        return out;
+    }
+
+    // Chiudi la connessione al server
     public void chiudiConnessione() {
         try {
             if (in != null) in.close();

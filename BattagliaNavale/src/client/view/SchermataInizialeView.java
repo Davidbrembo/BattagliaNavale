@@ -16,6 +16,7 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 import utility.Impostazioni;
 import utility.ImpostazioniManager;
+import server.model.ServerGameManager;
 
 import java.io.File;
 
@@ -113,7 +114,14 @@ public class SchermataInizialeView extends Application {
     }
 
     private void apriGioco(Stage primaryStage) {
-        GiocoView giocoView = new GiocoView();
+        // Crea il ServerGameManager con righe e colonne
+        int righe = 10;
+        int colonne = 10;
+        ServerGameManager gameManager = new ServerGameManager(righe, colonne); // Passaggio dei parametri
+
+        GiocoView.setGameManager(gameManager); // ✅ Imposta prima
+        GiocoView giocoView = new GiocoView(); // ✅ Nessun argomento
+        
         try {
             giocoView.start(primaryStage);
         } catch (Exception e) {

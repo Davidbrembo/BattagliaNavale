@@ -8,5 +8,7 @@ public enum Comando {
     FINE_PARTITA,
     MESSAGGIO_CHAT,
     INVIA_NOME,
-    DISCONNETTI
+    DISCONNETTI, 
+    ATTACCA,
+    RISPOSTA_ATTACCO
 }

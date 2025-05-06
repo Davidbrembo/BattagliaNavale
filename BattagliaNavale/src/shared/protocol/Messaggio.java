@@ -3,7 +3,11 @@ package shared.protocol;
 import java.io.Serializable;
 
 public class Messaggio implements Serializable {
-    private Comando comando;
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private Comando comando;
     private Object contenuto;
 
     public Messaggio(Comando comando, Object contenuto) {

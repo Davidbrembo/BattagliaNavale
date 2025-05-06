@@ -8,6 +8,7 @@ import javafx.scene.control.*;
 import javafx.scene.effect.ColorAdjust;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import server.model.ServerGameManager;
 import shared.protocol.Comando;
 import shared.protocol.Messaggio;
 import utility.Impostazioni;
@@ -43,6 +44,7 @@ public class GiocoView extends Application {
         Label nomeLabel = new Label();
         nomeLabel.setStyle("-fx-font-size: 24px; -fx-text-fill: white;");
 
+        // Gestione dell'evento click sul pulsante
         confermaButton.setOnAction(e -> {
             String nome = nomeField.getText().trim();
             if (nome.isEmpty()) {
@@ -56,10 +58,16 @@ public class GiocoView extends Application {
                 nomeLabel.setText("Giocatore: " + nome);
                 root.getChildren().removeAll(promptLabel, nomeField, confermaButton, erroreLabel);
                 root.getChildren().add(nomeLabel);
+
+                // Mostra la griglia dopo il nome
+                mostraGriglia(primaryStage);
             }
         });
 
-        // Aggiungi elementi
+        // Aggiungere l'event listener per "Enter"
+        nomeField.setOnAction(e -> confermaButton.fire());
+
+        // Aggiungi elementi al layout
         root.getChildren().addAll(promptLabel, nomeField, confermaButton, erroreLabel);
 
         // Crea scena
@@ -89,5 +97,26 @@ public class GiocoView extends Application {
             regolazione.setBrightness(brightness);
             root.setEffect(regolazione);
         }
+    }
+
+    private void mostraGriglia(Stage primaryStage) {
+        // Crea il ServerGameManager con righe e colonne
+        int righe = 10;
+        int colonne = 10;
+        ServerGameManager gameManager = new ServerGameManager(righe, colonne); // Passaggio dei parametri
+
+        GiocoView.setGameManager(gameManager); // Imposta il game manager
+
+        // Crea la vista della griglia
+        GrigliaView grigliaView = new GrigliaView(gameManager); 
+        Scene scenaGriglia = grigliaView.creaScena(primaryStage); // Ottieni la scena per la griglia
+
+        // Imposta la nuova scena per il primaryStage
+        primaryStage.setScene(scenaGriglia);
+        primaryStage.show();
+    }
+
+
+    public static void setGameManager(ServerGameManager manager) {
     }
 }

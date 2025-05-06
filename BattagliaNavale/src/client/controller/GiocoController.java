@@ -1,9 +1,11 @@
 package client.controller;
 
 import client.network.ClientSocket;
+import shared.model.RisultatoAttacco;
 import shared.protocol.Messaggio;
 
 import java.io.IOException;
+import java.io.ObjectInputStream;
 
 public class GiocoController {
 
@@ -33,9 +35,19 @@ public class GiocoController {
         }
     }
 
-
     public void inviaMessaggio(Messaggio messaggio) {
         clientSocket.inviaMessaggio(messaggio); // IOException non serve più catcharlo
+    }
+
+    public RisultatoAttacco getRisultatoAttacco() {
+        try {
+            // Ora ClientSocket gestisce correttamente l'input stream
+            ObjectInputStream inputStream = clientSocket.getInputStream();
+            return (RisultatoAttacco) inputStream.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public ClientSocket getClientSocket() {
