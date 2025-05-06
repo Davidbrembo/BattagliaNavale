@@ -3,7 +3,11 @@ package shared.model;
 import java.io.Serializable;
 
 public class Posizione implements Serializable {
-    private int riga;
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private int riga;
     private int colonna;
 
     public Posizione(int riga, int colonna) {
