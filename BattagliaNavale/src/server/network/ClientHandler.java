@@ -1,22 +1,23 @@
 package server.network;
 
-import shared.model.Posizione;
-import shared.model.RisultatoAttacco;
 import shared.protocol.Comando;
 import shared.protocol.Messaggio;
 import utility.LogUtility;
+
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
 public class ClientHandler implements Runnable {
-
     private final Socket clientSocket;
+    private final int idGiocatore; // 0 o 1
     private ObjectInputStream in;
     private ObjectOutputStream out;
-    
-    public ClientHandler(Socket socket) {
+
+    public ClientHandler(Socket socket, int idGiocatore) {
         this.clientSocket = socket;
+        this.idGiocatore = idGiocatore;
     }
 
     @Override
@@ -25,43 +26,26 @@ public class ClientHandler implements Runnable {
             in = new ObjectInputStream(clientSocket.getInputStream());
             out = new ObjectOutputStream(clientSocket.getOutputStream());
 
-            LogUtility.info("[SERVER] Nuovo client connesso da " + clientSocket.getInetAddress());
+            // Notifica il client del suo ID
+            inviaMessaggio(new Messaggio(Comando.ASSEGNA_ID, idGiocatore));
+            LogUtility.info("[SERVER] Assegnato ID " + idGiocatore + " al client.");
 
-            Messaggio msg;
-            while ((msg = (Messaggio) in.readObject()) != null) {
-                LogUtility.info("[SERVER] Ricevuto messaggio: " + msg.getComando() + " - " + msg.getContenuto());
-
-                switch (msg.getComando()) {
-                case INVIA_NOME:
-                    String nome = (String) msg.getContenuto();
-                    LogUtility.info("[SERVER] Nome ricevuto: " + nome);
-                    break;
-
-                case ATTACCA:
-                    Posizione posizione = (Posizione) msg.getContenuto();
-                    LogUtility.info("[SERVER] Attacco ricevuto in posizione: " + posizione);
-
-                    // ESEGUI L'ATTACCO sulla griglia del giocatore nemico (questa parte è simulata qui)
-                    RisultatoAttacco risultato = new RisultatoAttacco(true, posizione); // <-- sostituiscilo con il vero risultato
-
-                    // INVIA RISPOSTA AL CLIENT
-                    inviaMessaggio(new Messaggio(Comando.RISPOSTA_ATTACCO, risultato));
-                    break;
-
-                case DISCONNETTI:
-                    LogUtility.info("[SERVER] Il client ha richiesto la disconnessione.");
-                    closeConnection();
-                    return;
-
-                default:
-                    LogUtility.info("[SERVER] Comando non riconosciuto.");
-                    break;
+            // Attendi che entrambi i client siano connessi
+            if (idGiocatore == 0) {
+                inviaMessaggio(new Messaggio(Comando.STATO, "In attesa del secondo giocatore..."));
+            } else {
+                inviaMessaggio(new Messaggio(Comando.STATO, "Partita pronta!"));
+                // Notifica anche il client 0 che la partita può iniziare
+                // (Se hai una lista globale di ClientHandler, puoi inviare un messaggio a entrambi)
             }
 
+            // Resto della logica (ricezione messaggi, turni, ecc.)
+            while ((in.readObject()) != null) {
+                // Gestisci i comandi (es. ATTACCA, DISCONNETTI)
             }
 
         } catch (Exception e) {
-            LogUtility.error("[SERVER] Errore nella gestione del client: " + e.getMessage());
+            LogUtility.error("[SERVER] Errore con il client " + idGiocatore + ": " + e.getMessage());
         } finally {
             closeConnection();
         }
@@ -69,22 +53,18 @@ public class ClientHandler implements Runnable {
 
     private void closeConnection() {
         try {
-            if (clientSocket != null && !clientSocket.isClosed()) {
-                clientSocket.close();
-                LogUtility.info("[SERVER] Connessione con il client chiusa.");
-            }
-        } catch (Exception e) {
-            LogUtility.error("[SERVER] Errore nella chiusura della connessione: " + e.getMessage());
+            if (clientSocket != null) clientSocket.close();
+        } catch (IOException e) {
+            LogUtility.error("[SERVER] Errore nella chiusura del client " + idGiocatore);
         }
     }
-    
+
     private void inviaMessaggio(Messaggio messaggio) {
         try {
             out.writeObject(messaggio);
             out.flush();
-        } catch (Exception e) {
-            LogUtility.error("[SERVER] Errore nell'invio del messaggio al client: " + e.getMessage());
+        } catch (IOException e) {
+            LogUtility.error("[SERVER] Errore nell'invio al client " + idGiocatore);
         }
     }
-
 }

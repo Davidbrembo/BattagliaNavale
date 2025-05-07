@@ -1,14 +1,11 @@
 package shared.protocol;
 
 public enum Comando {
-    POSIZIONA, // per il posizionamento navi
-    MOSSA,     // quando un giocatore effettua una mossa
-    RISPOSTA,  // per la risposta alla mossa (colpito, mancato, affondato)
-    INIZIA_PARTITA,
-    FINE_PARTITA,
-    MESSAGGIO_CHAT,
-    INVIA_NOME,
-    DISCONNETTI, 
     ATTACCA,
-    RISPOSTA_ATTACCO
+    RISPOSTA_ATTACCO,
+    TURNO,
+    FINE_PARTITA, 
+    INVIA_NOME, 
+    DISCONNETTI, 
+    RISPOSTA, RISULTATO_ATTACCO, STATO, ASSEGNA_ID, ERRORE
 }
