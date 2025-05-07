@@ -6,6 +6,9 @@ import shared.model.RisultatoAttacco;
 public class ServerGameManager {
     private GrigliaServer[] griglie = new GrigliaServer[2];
     private int turno = 0;
+    
+    public ServerGameManager() {
+    }
 
     public ServerGameManager(int righe, int colonne) {
         griglie[0] = new GrigliaServer(righe, colonne);

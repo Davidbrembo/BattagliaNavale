@@ -72,8 +72,8 @@ public class GrigliaView {
      giocoController.inviaMessaggio(messaggio);
      
      // Gestisci la risposta del server (aggiornamento della griglia)
-     RisultatoAttacco risultato = giocoController.getRisultatoAttacco();  // Puoi avere un metodo per ottenere il risultato
-     aggiornaCella(posizione, risultato);
+     /*RisultatoAttacco risultato = giocoController.getRisultatoAttacco();  // Puoi avere un metodo per ottenere il risultato
+     aggiornaCella(posizione, risultato);*/
  }
 
  private void aggiornaCella(Posizione posizione, RisultatoAttacco risultato) {

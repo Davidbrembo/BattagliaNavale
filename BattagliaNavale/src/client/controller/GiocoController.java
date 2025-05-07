@@ -10,7 +10,7 @@ import java.io.ObjectInputStream;
 public class GiocoController {
 
     private static GiocoController instance;
-    private final ClientSocket clientSocket;
+    public final ClientSocket clientSocket;
     private String nomeGiocatore;
 
     public GiocoController() {
@@ -28,6 +28,7 @@ public class GiocoController {
         try {
             clientSocket.connect("localhost", 12345);
             System.out.println("[CLIENT] Connessione avvenuta.");
+            System.out.println("[SERVER] " + clientSocket.riceviMessaggio());
             return true;
         } catch (IOException e) {
             System.out.println("[CLIENT] Errore di connessione: " + e.getMessage());
@@ -39,16 +40,11 @@ public class GiocoController {
         clientSocket.inviaMessaggio(messaggio); // IOException non serve più catcharlo
     }
 
-    public RisultatoAttacco getRisultatoAttacco() {
-        try {
-            // Ora ClientSocket gestisce correttamente l'input stream
-            ObjectInputStream inputStream = clientSocket.getInputStream();
-            return (RisultatoAttacco) inputStream.readObject();
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
+    /*public RisultatoAttacco getRisultatoAttacco() {
+        System.out.println(clientSocket.riceviMessaggio());
+		return clientSocket.riceviMessaggio().getContenuto() instanceof RisultatoAttacco ? (RisultatoAttacco) clientSocket.riceviMessaggio().getContenuto() : null;
+        
+    }*/
 
     public ClientSocket getClientSocket() {
         return clientSocket;

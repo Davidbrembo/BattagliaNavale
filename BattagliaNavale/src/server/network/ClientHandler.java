@@ -11,7 +11,7 @@ import java.net.Socket;
 
 public class ClientHandler implements Runnable {
     private final Socket clientSocket;
-    private final int idGiocatore; // 0 o 1
+    private final int idGiocatore;
     private ObjectInputStream in;
     private ObjectOutputStream out;
 
@@ -23,25 +23,21 @@ public class ClientHandler implements Runnable {
     @Override
     public void run() {
         try {
-            in = new ObjectInputStream(clientSocket.getInputStream());
             out = new ObjectOutputStream(clientSocket.getOutputStream());
+            out.flush(); // Assicura che lo stream sia pronto
+            in = new ObjectInputStream(clientSocket.getInputStream());
 
-            // Notifica il client del suo ID
+            // Invia solo l'ID al client
             inviaMessaggio(new Messaggio(Comando.ASSEGNA_ID, idGiocatore));
             LogUtility.info("[SERVER] Assegnato ID " + idGiocatore + " al client.");
 
-            // Attendi che entrambi i client siano connessi
-            if (idGiocatore == 0) {
-                inviaMessaggio(new Messaggio(Comando.STATO, "In attesa del secondo giocatore..."));
-            } else {
-                inviaMessaggio(new Messaggio(Comando.STATO, "Partita pronta!"));
-                // Notifica anche il client 0 che la partita può iniziare
-                // (Se hai una lista globale di ClientHandler, puoi inviare un messaggio a entrambi)
-            }
-
-            // Resto della logica (ricezione messaggi, turni, ecc.)
-            while ((in.readObject()) != null) {
-                // Gestisci i comandi (es. ATTACCA, DISCONNETTI)
+            // Attendi comandi dal client
+            while (true) {
+                Object obj = in.readObject();
+                if (obj instanceof Messaggio messaggio) {
+                    // TODO: gestire i messaggi ricevuti dal client (es. ATTACCA, DISCONNETTI, ecc.)
+                    LogUtility.info("[SERVER] Ricevuto dal client " + idGiocatore + ": " + messaggio);
+                }
             }
 
         } catch (Exception e) {
@@ -59,7 +55,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private void inviaMessaggio(Messaggio messaggio) {
+    public void inviaMessaggio(Messaggio messaggio) {
         try {
             out.writeObject(messaggio);
             out.flush();

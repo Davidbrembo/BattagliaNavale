@@ -22,4 +22,12 @@ public class Messaggio implements Serializable {
     public Object getContenuto() {
         return contenuto;
     }
+    
+    @Override
+    public String toString() {
+		return "Messaggio{" +
+				"comando=" + comando +
+				", contenuto=" + contenuto +
+				'}';
+	}
 }

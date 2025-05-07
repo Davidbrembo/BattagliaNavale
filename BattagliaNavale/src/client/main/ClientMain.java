@@ -6,13 +6,6 @@ import javafx.application.Application;
 
 public class ClientMain {
     public static void main(String[] args) {
-        GiocoController controller = new GiocoController();
-        if(controller.iniziaConnessione()) {
-        	Application.launch(SchermataInizialeView.class, args);
-        }
-        else {
-			System.out.println("Connessione fallita");
-		}
-        
+        Application.launch(SchermataInizialeView.class, args);   
     }
 }

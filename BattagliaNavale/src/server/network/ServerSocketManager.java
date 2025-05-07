@@ -1,14 +1,18 @@
 package server.network;
 
+import shared.protocol.Comando;
+import shared.protocol.Messaggio;
 import utility.LogUtility;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.concurrent.Semaphore;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ServerSocketManager {
     private final ServerSocket serverSocket;
-    private final Semaphore connectionSemaphore = new Semaphore(2); // Permessi per 2 connessioni
+    private final List<ClientHandler> clientHandlers = new ArrayList<>();
 
     public ServerSocketManager(int porta) throws IOException {
         this.serverSocket = new ServerSocket(porta);
@@ -16,33 +20,34 @@ public class ServerSocketManager {
     }
 
     public void start() {
-        while (true) {
+        while (clientHandlers.size() < 2) {
             try {
-                connectionSemaphore.acquire(); // Blocca se già 2 connessioni
-                
                 Socket client = serverSocket.accept();
+                int playerID = clientHandlers.size(); // 0 o 1
+
                 LogUtility.info("[SERVER] Nuova connessione da: " + client.getInetAddress());
-                
-                new Thread(() -> {
-                    try {
-                        ClientHandler handler = new ClientHandler(client, connectionSemaphore.availablePermits());
-                        handler.run();
-                    } finally {
-                        connectionSemaphore.release(); // Libera il permesso
-                        LogUtility.info("[SERVER] Slot disponibili: " + connectionSemaphore.availablePermits());
+
+                ClientHandler handler = new ClientHandler(client, playerID);
+                clientHandlers.add(handler);
+                new Thread(handler).start();
+
+                LogUtility.info("[SERVER] Connessi: " + clientHandlers.size());
+
+                // Se entrambi sono connessi, invia START a tutti
+                if (clientHandlers.size() == 2) {
+                    LogUtility.info("[SERVER] Entrambi i giocatori connessi. Inizio partita.");
+                    Messaggio startMsg = new Messaggio(Comando.START, "Partita pronta!");
+                    for (ClientHandler ch : clientHandlers) {
+                        ch.inviaMessaggio(startMsg);
                     }
-                }).start();
-                
+                }
+
             } catch (IOException e) {
                 LogUtility.error("[SERVER] Errore I/O: " + e.getMessage());
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                LogUtility.error("[SERVER] Interrotto: " + e.getMessage());
             }
         }
     }
 
-    // Metodo per chiudere il server
     public void stop() {
         try {
             serverSocket.close();

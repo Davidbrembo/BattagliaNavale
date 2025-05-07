@@ -8,7 +8,7 @@ public class RisultatoAttacco implements Serializable {
 	 */
 	private static final long serialVersionUID = 1L;
 	private Posizione posizione;
-    private boolean colpito;
+    private boolean colpito = false;
     private boolean naveAffondata;
 
     public RisultatoAttacco(Posizione posizione, boolean colpito, boolean naveAffondata) {

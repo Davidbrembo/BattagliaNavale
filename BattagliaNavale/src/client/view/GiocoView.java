@@ -59,8 +59,8 @@ public class GiocoView extends Application {
                 root.getChildren().removeAll(promptLabel, nomeField, confermaButton, erroreLabel);
                 root.getChildren().add(nomeLabel);
 
-                // Mostra la griglia dopo il nome
-                mostraGriglia(primaryStage);
+                // Mostra la lobby dopo il nome
+                mostraLobby(primaryStage);
             }
         });
 
@@ -98,21 +98,13 @@ public class GiocoView extends Application {
             root.setEffect(regolazione);
         }
     }
+    
+    private void mostraLobby(Stage primaryStage) {
 
-    private void mostraGriglia(Stage primaryStage) {
-        // Crea il ServerGameManager con righe e colonne
-        int righe = 10;
-        int colonne = 10;
-        ServerGameManager gameManager = new ServerGameManager(righe, colonne); // Passaggio dei parametri
+        LobbyView lobbyView = new LobbyView(); 
+        Scene scenaLobby = lobbyView.creaScena(primaryStage); // Ottieni la scena per la griglia
 
-        GiocoView.setGameManager(gameManager); // Imposta il game manager
-
-        // Crea la vista della griglia
-        GrigliaView grigliaView = new GrigliaView(gameManager); 
-        Scene scenaGriglia = grigliaView.creaScena(primaryStage); // Ottieni la scena per la griglia
-
-        // Imposta la nuova scena per il primaryStage
-        primaryStage.setScene(scenaGriglia);
+        primaryStage.setScene(scenaLobby);
         primaryStage.show();
     }
 
