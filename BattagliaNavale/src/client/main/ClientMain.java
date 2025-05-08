@@ -1,6 +1,5 @@
 package client.main;
 
-import client.controller.GiocoController;
 import client.view.SchermataInizialeView;
 import javafx.application.Application;
 

@@ -1,7 +1,6 @@
 package client.view;
 
 import client.controller.GiocoController;
-import client.network.ClientSocket;
 import javafx.application.Application;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;

@@ -11,7 +11,6 @@ import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import shared.model.Posizione;
 import server.model.ServerGameManager;
-import shared.model.RisultatoAttacco;
 import shared.protocol.Comando;
 import shared.protocol.Messaggio;
 
@@ -76,22 +75,4 @@ public class GrigliaView {
      aggiornaCella(posizione, risultato);*/
  }
 
- private void aggiornaCella(Posizione posizione, RisultatoAttacco risultato) {
-     // Recupera la cella dalla griglia (modifica la cella corrispondente alla posizione)
-     // Questo può essere fatto, per esempio, iterando su tutte le celle o usando una struttura dati per mappare le celle
-
-     if (risultato.isColpito()) {
-         // Se l'attacco ha colpito una nave
-         System.out.println("Colpito!");
-         // Modifica la griglia per evidenziare la cella
-     } else {
-         // Se l'attacco ha mancato
-         System.out.println("Mancato!");
-     }
-
-     if (risultato.isNaveAffondata()) {
-         // Se una nave è affondata, puoi mostrare un avviso o cambiare la cella
-         System.out.println("Nave affondata!");
-     }
- }
 }

@@ -24,14 +24,15 @@ public class ClientSocket {
         return instance;
     }
 
-    // Connessione al server
+ // Connessione al server
     public void connect(String host, int port) throws IOException {
         socket = new Socket(host, port);
-        in = new ObjectInputStream(socket.getInputStream());   // <-- PRIMA l'input
-        out = new ObjectOutputStream(socket.getOutputStream()); // <-- POI l'output
+        out = new ObjectOutputStream(socket.getOutputStream()); // <-- PRIMA l'output ✅
         out.flush();
+        in = new ObjectInputStream(socket.getInputStream());    // <-- POI l'input ✅
         LogUtility.info("[CLIENT] Connesso al server su " + host + ":" + port);
     }
+
 
     // Invia un messaggio al server
     public void inviaMessaggio(Messaggio messaggio) {
