@@ -73,7 +73,6 @@ public class LobbyView extends Application {
         int righe = 10;
         int colonne = 10;
         ServerGameManager gameManager = new ServerGameManager(righe, colonne); // Passaggio dei parametri
-        System.out.println("skibidi");
         GiocoView.setGameManager(gameManager); // Imposta il game manager
 
         // Crea la vista della griglia
@@ -90,7 +89,11 @@ public class LobbyView extends Application {
     }
 
     public Scene creaScena(Stage primaryStage) {
-    	GiocoController.getInstance().iniziaConnessione();
+    	if (!GiocoController.getInstance().isConnesso()) {
+    	    System.out.println("[CLIENT] Connessione non riuscita.");
+    	    return new Scene(new VBox(new Label("Errore di connessione.")), 800, 600);
+    	}
+
         VBox root = new VBox(20);
         root.setStyle("-fx-background-color: #1b1b1b; -fx-padding: 50px;");
         root.setAlignment(Pos.CENTER);

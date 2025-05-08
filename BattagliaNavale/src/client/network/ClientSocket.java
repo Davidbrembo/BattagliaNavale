@@ -27,20 +27,21 @@ public class ClientSocket {
     // Connessione al server
     public void connect(String host, int port) throws IOException {
         socket = new Socket(host, port);
-        out = new ObjectOutputStream(socket.getOutputStream());
-        in = new ObjectInputStream(socket.getInputStream());
+        in = new ObjectInputStream(socket.getInputStream());   // <-- PRIMA l'input
+        out = new ObjectOutputStream(socket.getOutputStream()); // <-- POI l'output
+        out.flush();
         LogUtility.info("[CLIENT] Connesso al server su " + host + ":" + port);
     }
 
     // Invia un messaggio al server
-    public void inviaMessaggio(Messaggio msg) {
+    public void inviaMessaggio(Messaggio messaggio) {
         try {
-            if (out != null) {
-                out.writeObject(msg);
-                out.flush();
-            } else {
-                LogUtility.error("[CLIENT] Stream di output non inizializzato.");
+            if (out == null) {
+                LogUtility.error("[CLIENT] Errore: stream di output è null. Forse connect() non è stato chiamato?");
+                return;
             }
+            out.writeObject(messaggio);
+            out.flush();
         } catch (IOException e) {
             LogUtility.error("[CLIENT] Errore nell'invio del messaggio: " + e.getMessage());
         }

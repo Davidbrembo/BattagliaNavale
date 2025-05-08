@@ -1,20 +1,21 @@
 package client.controller;
 
 import client.network.ClientSocket;
-import shared.model.RisultatoAttacco;
 import shared.protocol.Messaggio;
+import utility.LogUtility;
 
 import java.io.IOException;
-import java.io.ObjectInputStream;
 
 public class GiocoController {
 
     private static GiocoController instance;
     public final ClientSocket clientSocket;
     private String nomeGiocatore;
+    private boolean connesso;
 
-    public GiocoController() {
+    private GiocoController() {
         clientSocket = ClientSocket.getInstance();
+        connesso = inizializzaConnessione(); // tentativo automatico alla creazione
     }
 
     public static GiocoController getInstance() {
@@ -24,27 +25,26 @@ public class GiocoController {
         return instance;
     }
 
-    public boolean iniziaConnessione() {
+    public boolean inizializzaConnessione() {
         try {
             clientSocket.connect("localhost", 12345);
-            System.out.println("[CLIENT] Connessione avvenuta.");
-            System.out.println("[SERVER] " + clientSocket.riceviMessaggio());
+            LogUtility.info("[CLIENT] Connessione avvenuta.");
+            Messaggio messaggioDiBenvenuto = clientSocket.riceviMessaggio();
+            LogUtility.info("[SERVER] " + messaggioDiBenvenuto);
             return true;
         } catch (IOException e) {
-            System.out.println("[CLIENT] Errore di connessione: " + e.getMessage());
+            LogUtility.error("[CLIENT] Errore di connessione: " + e.getMessage());
             return false;
         }
     }
 
     public void inviaMessaggio(Messaggio messaggio) {
-        clientSocket.inviaMessaggio(messaggio); // IOException non serve più catcharlo
+        if (!connesso || clientSocket.getOutputStream() == null) {
+            LogUtility.error("[CLIENT] Tentativo di invio messaggio senza connessione!");
+            return;
+        }
+        clientSocket.inviaMessaggio(messaggio);
     }
-
-    /*public RisultatoAttacco getRisultatoAttacco() {
-        System.out.println(clientSocket.riceviMessaggio());
-		return clientSocket.riceviMessaggio().getContenuto() instanceof RisultatoAttacco ? (RisultatoAttacco) clientSocket.riceviMessaggio().getContenuto() : null;
-        
-    }*/
 
     public ClientSocket getClientSocket() {
         return clientSocket;
@@ -56,5 +56,9 @@ public class GiocoController {
 
     public void setNomeGiocatore(String nomeGiocatore) {
         this.nomeGiocatore = nomeGiocatore;
+    }
+
+    public boolean isConnesso() {
+        return connesso;
     }
 }
