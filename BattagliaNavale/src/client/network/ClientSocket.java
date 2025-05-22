@@ -1,5 +1,6 @@
 package client.network;
 
+import shared.protocol.Comando;
 import shared.protocol.Messaggio;
 import utility.LogUtility;
 
@@ -76,6 +77,14 @@ public class ClientSocket {
     // Chiudi la connessione al server
     public void chiudiConnessione() {
         try {
+            // Invia messaggio di disconnessione prima di chiudere tutto
+            if (out != null) {
+                Messaggio disconnessione = new Messaggio(Comando.DISCONNESSIONE, "Client si disconnette");
+                out.writeObject(disconnessione);
+                out.flush();
+            }
+
+            // Ora chiudi gli stream e socket
             if (in != null) in.close();
             if (out != null) out.close();
             if (socket != null) socket.close();
@@ -84,4 +93,5 @@ public class ClientSocket {
             LogUtility.error("[CLIENT] Errore durante la chiusura della connessione: " + e.getMessage());
         }
     }
+
 }

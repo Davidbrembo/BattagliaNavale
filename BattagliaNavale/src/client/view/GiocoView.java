@@ -8,7 +8,6 @@ import javafx.scene.control.*;
 import javafx.scene.effect.ColorAdjust;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import server.model.ServerGameManager;
 import shared.protocol.Comando;
 import shared.protocol.Messaggio;
 import utility.Impostazioni;
@@ -22,29 +21,23 @@ public class GiocoView extends Application {
         root.setStyle("-fx-background-color: #1b1b1b; -fx-padding: 50px;");
         root.setAlignment(Pos.CENTER);
 
-        // Etichetta di richiesta nome
         Label promptLabel = new Label("Inserisci il tuo nome:");
         promptLabel.getStyleClass().add("impostazione-label");
 
-        // Campo di testo per l'inserimento del nome
         TextField nomeField = new TextField();
         nomeField.setPromptText("Nome giocatore");
         nomeField.setMaxWidth(300);
         nomeField.getStyleClass().add("nome-field");
 
-        // Bottone per confermare
         Button confermaButton = new Button("Conferma");
         confermaButton.getStyleClass().add("button");
 
-        // Etichetta per errori
         Label erroreLabel = new Label();
         erroreLabel.setStyle("-fx-text-fill: red; -fx-font-size: 14px;");
 
-        // Etichetta per il nome confermato
         Label nomeLabel = new Label();
         nomeLabel.setStyle("-fx-font-size: 24px; -fx-text-fill: white;");
 
-        // Gestione dell'evento click sul pulsante
         confermaButton.setOnAction(e -> {
             String nome = nomeField.getText().trim();
             if (nome.isEmpty()) {
@@ -59,32 +52,31 @@ public class GiocoView extends Application {
                 root.getChildren().removeAll(promptLabel, nomeField, confermaButton, erroreLabel);
                 root.getChildren().add(nomeLabel);
 
-                // Mostra la lobby dopo il nome
                 mostraLobby(primaryStage);
             }
         });
 
-        // Aggiungere l'event listener per "Enter"
         nomeField.setOnAction(e -> confermaButton.fire());
 
-        // Aggiungi elementi al layout
         root.getChildren().addAll(promptLabel, nomeField, confermaButton, erroreLabel);
 
-        // Crea scena
         Scene scene = new Scene(root, 800, 600);
-
-        // Applica CSS
         scene.getStylesheets().add(getClass().getResource("/warstyle.css").toExternalForm());
 
-        // ✅ Applica luminosità da settings.json
         applicaLuminosita(root);
 
-        // Finestra
         primaryStage.setScene(scene);
         primaryStage.setTitle("Battaglia Navale");
         primaryStage.setFullScreen(false);
         primaryStage.setResizable(true);
         primaryStage.centerOnScreen();
+
+        // Qui il listener di chiusura finestra che invia il messaggio di disconnessione
+        primaryStage.setOnCloseRequest(event -> {
+            GiocoController.getInstance().inviaMessaggio(new Messaggio(Comando.DISCONNESSIONE, " Questo client si disconnette"));
+            client.network.ClientSocket.getInstance().chiudiConnessione();
+        });
+
         primaryStage.show();
     }
 
@@ -98,17 +90,15 @@ public class GiocoView extends Application {
             root.setEffect(regolazione);
         }
     }
-    
+
     private void mostraLobby(Stage primaryStage) {
-
-        LobbyView lobbyView = new LobbyView(); 
-        Scene scenaLobby = lobbyView.creaScena(primaryStage); // Ottieni la scena per la griglia
-
+        LobbyView lobbyView = new LobbyView();
+        Scene scenaLobby = lobbyView.creaScena(primaryStage);
         primaryStage.setScene(scenaLobby);
         primaryStage.show();
     }
 
-
-    public static void setGameManager(ServerGameManager manager) {
+    public static void setGameManager(server.model.ServerGameManager manager) {
+        // se ti serve puoi implementare
     }
 }

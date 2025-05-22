@@ -3,17 +3,19 @@ package server.network;
 import shared.protocol.Comando;
 import shared.protocol.Messaggio;
 import utility.LogUtility;
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+
+import client.network.ClientSocket;
 
 public class ClientHandler implements Runnable {
     private final Socket clientSocket;
     private final int idGiocatore;
     private ObjectInputStream in;
     private ObjectOutputStream out;
+    private ClientSocket cs;
 
     public ClientHandler(Socket socket, int idGiocatore) {
         this.clientSocket = socket;
@@ -37,11 +39,41 @@ public class ClientHandler implements Runnable {
                 if (obj instanceof Messaggio messaggio) {
                     // TODO: gestire i messaggi ricevuti dal client (es. ATTACCA, DISCONNETTI, ecc.)
                     LogUtility.info("[SERVER] Ricevuto dal client " + idGiocatore + ": " + messaggio);
+
+					switch (messaggio.getComando()) {
+						case START -> {
+							LogUtility.info("[SERVER] Inizio partita per il client " + idGiocatore);
+							// Inviare messaggio di inizio partita
+						}
+						case ASSEGNA_ID -> {
+							LogUtility.info("[SERVER] Assegnato ID " + idGiocatore + " al client.");
+							// Inviare messaggio di assegnazione ID
+						}
+						case INVIA_NOME -> {
+							LogUtility.info("[SERVER] Nome giocatore ricevuto: " + messaggio.getContenuto());
+							// Gestire il nome del giocatore
+						}
+						case ATTACCA -> {
+							LogUtility.info("[SERVER] Giocatore " + idGiocatore + " ha attaccato.");
+							// Gestire l'attacco
+						}
+						case DISCONNESSIONE -> {
+						    LogUtility.info("[SERVER] Client " + idGiocatore + " disconnesso.");
+						    inviaMessaggio(new Messaggio(Comando.DISCONNESSIONE, "Connessione chiusa."));
+						    closeConnection();
+						    return; // esci dal thread
+						}
+
+						// Aggiungere altri casi per gestire i comandi
+						default -> LogUtility.info("[SERVER] Comando non gestito: " + messaggio.getComando());
+					}
+                    
                 }
             }
 
         } catch (Exception e) {
             LogUtility.error("[SERVER] Errore con il client " + idGiocatore + ": " + e.getMessage());
+            inviaMessaggio(new Messaggio(Comando.DISCONNESSIONE, "Connessione chiusa."));
         } finally {
             closeConnection();
         }
@@ -49,18 +81,44 @@ public class ClientHandler implements Runnable {
 
     private void closeConnection() {
         try {
-            if (clientSocket != null) clientSocket.close();
+            if (in != null) {
+                in.close();
+                in = null;
+            }
         } catch (IOException e) {
-            LogUtility.error("[SERVER] Errore nella chiusura del client " + idGiocatore);
+            LogUtility.info("[SERVER] InputStream già chiuso client " + idGiocatore);
+        }
+        try {
+            if (out != null) {
+                out.close();
+                out = null;
+            }
+        } catch (IOException e) {
+            LogUtility.info("[SERVER] OutputStream già chiuso client " + idGiocatore);
+        }
+        try {
+            if (clientSocket != null && !clientSocket.isClosed()) {
+                clientSocket.close();
+            }
+        } catch (IOException e) {
+            LogUtility.info("[SERVER] Socket già chiuso client " + idGiocatore);
         }
     }
 
+
+
     public void inviaMessaggio(Messaggio messaggio) {
+        if (clientSocket == null || clientSocket.isClosed()) {
+            LogUtility.info("[SERVER] Tentativo di invio messaggio su socket chiuso per client " + idGiocatore);
+            return; // evita di inviare se socket chiuso
+        }
         try {
             out.writeObject(messaggio);
             out.flush();
         } catch (IOException e) {
-            LogUtility.error("[SERVER] Errore nell'invio al client " + idGiocatore);
+            LogUtility.error("[SERVER] Errore nell'invio al client " + idGiocatore + ": " + e.getMessage());
+            closeConnection();
         }
     }
+
 }
