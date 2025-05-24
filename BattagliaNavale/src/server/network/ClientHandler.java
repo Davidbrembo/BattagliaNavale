@@ -1,5 +1,6 @@
 package server.network;
 
+import shared.model.Posizione;
 import shared.protocol.Comando;
 import shared.protocol.Messaggio;
 import utility.LogUtility;
@@ -13,20 +14,22 @@ import client.network.ClientSocket;
 public class ClientHandler implements Runnable {
     private final Socket clientSocket;
     private final int idGiocatore;
+    private final ServerSocketManager serverManager;
     private ObjectInputStream in;
     private ObjectOutputStream out;
     private ClientSocket cs;
 
-    public ClientHandler(Socket socket, int idGiocatore) {
+    public ClientHandler(Socket socket, int idGiocatore, ServerSocketManager serverManager) {
         this.clientSocket = socket;
         this.idGiocatore = idGiocatore;
+        this.serverManager = serverManager;
     }
 
     @Override
     public void run() {
         try {
             out = new ObjectOutputStream(clientSocket.getOutputStream());
-            out.flush(); // Assicura che lo stream sia pronto
+            out.flush();
             in = new ObjectInputStream(clientSocket.getInputStream());
 
             // Invia solo l'ID al client
@@ -37,37 +40,34 @@ public class ClientHandler implements Runnable {
             while (true) {
                 Object obj = in.readObject();
                 if (obj instanceof Messaggio messaggio) {
-                    // TODO: gestire i messaggi ricevuti dal client (es. ATTACCA, DISCONNETTI, ecc.)
                     LogUtility.info("[SERVER] Ricevuto dal client " + idGiocatore + ": " + messaggio);
 
-					switch (messaggio.getComando()) {
-						case START -> {
-							LogUtility.info("[SERVER] Inizio partita per il client " + idGiocatore);
-							// Inviare messaggio di inizio partita
-						}
-						case ASSEGNA_ID -> {
-							LogUtility.info("[SERVER] Assegnato ID " + idGiocatore + " al client.");
-							// Inviare messaggio di assegnazione ID
-						}
-						case INVIA_NOME -> {
-							LogUtility.info("[SERVER] Nome giocatore ricevuto: " + messaggio.getContenuto());
-							// Gestire il nome del giocatore
-						}
-						case ATTACCA -> {
-							LogUtility.info("[SERVER] Giocatore " + idGiocatore + " ha attaccato.");
-							// Gestire l'attacco
-						}
-						case DISCONNESSIONE -> {
-						    LogUtility.info("[SERVER] Client " + idGiocatore + " disconnesso.");
-						    inviaMessaggio(new Messaggio(Comando.DISCONNESSIONE, "Connessione chiusa."));
-						    closeConnection();
-						    return; // esci dal thread
-						}
-
-						// Aggiungere altri casi per gestire i comandi
-						default -> LogUtility.info("[SERVER] Comando non gestito: " + messaggio.getComando());
-					}
-                    
+                    switch (messaggio.getComando()) {
+                        case START -> {
+                            LogUtility.info("[SERVER] Inizio partita per il client " + idGiocatore);
+                        }
+                        case ASSEGNA_ID -> {
+                            LogUtility.info("[SERVER] Assegnato ID " + idGiocatore + " al client.");
+                        }
+                        case INVIA_NOME -> {
+                            LogUtility.info("[SERVER] Nome giocatore ricevuto: " + messaggio.getContenuto());
+                        }
+                        case ATTACCA -> {
+                            // Gestisci l'attacco tramite il ServerSocketManager
+                            if (messaggio.getContenuto() instanceof Posizione posizione) {
+                                serverManager.gestisciAttacco(idGiocatore, posizione);
+                            } else {
+                                LogUtility.error("[SERVER] Attacco ricevuto senza posizione valida");
+                            }
+                        }
+                        case DISCONNESSIONE -> {
+                            LogUtility.info("[SERVER] Client " + idGiocatore + " disconnesso.");
+                            inviaMessaggio(new Messaggio(Comando.DISCONNESSIONE, "Connessione chiusa."));
+                            closeConnection();
+                            return;
+                        }
+                        default -> LogUtility.info("[SERVER] Comando non gestito: " + messaggio.getComando());
+                    }
                 }
             }
 
@@ -105,12 +105,10 @@ public class ClientHandler implements Runnable {
         }
     }
 
-
-
     public void inviaMessaggio(Messaggio messaggio) {
         if (clientSocket == null || clientSocket.isClosed()) {
             LogUtility.info("[SERVER] Tentativo di invio messaggio su socket chiuso per client " + idGiocatore);
-            return; // evita di inviare se socket chiuso
+            return;
         }
         try {
             out.writeObject(messaggio);
@@ -120,5 +118,4 @@ public class ClientHandler implements Runnable {
             closeConnection();
         }
     }
-
 }

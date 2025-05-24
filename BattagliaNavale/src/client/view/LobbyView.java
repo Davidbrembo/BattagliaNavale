@@ -1,4 +1,4 @@
-package client.view;
+	package client.view;
 
 import client.controller.GiocoController;
 import javafx.application.Application;
@@ -113,11 +113,16 @@ public class LobbyView extends Application {
         // ✅ Thread per ricevere messaggio START
         new Thread(() -> {
             try {
-                Messaggio msg = GiocoController.getInstance().clientSocket.riceviMessaggio();
-                System.out.println("Messaggio ricevuto: " + msg);
+                while (true) {
+                    Messaggio msg = GiocoController.getInstance().clientSocket.riceviMessaggio();
+                    if (msg == null) break;
+                    
+                    System.out.println("Messaggio ricevuto in lobby: " + msg);
 
-                if (msg.getComando() == Comando.START) {
-                    javafx.application.Platform.runLater(() -> mostraGriglia(primaryStage));
+                    if (msg.getComando() == Comando.START) {
+                        javafx.application.Platform.runLater(() -> mostraGriglia(primaryStage));
+                        break; // Esci dal loop della lobby
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
