@@ -126,6 +126,7 @@ public class GrigliaView {
                 statoLabel.setText((String) messaggio.getContenuto());
                 statoLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px; -fx-font-weight: bold;");
             }
+		default -> throw new IllegalArgumentException("Unexpected value: " + messaggio.getComando());
         }
     }
 
