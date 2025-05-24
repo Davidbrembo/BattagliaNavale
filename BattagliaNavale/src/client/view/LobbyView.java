@@ -1,4 +1,4 @@
-	package client.view;
+package client.view;
 
 import client.controller.GiocoController;
 import javafx.application.Application;
@@ -32,9 +32,6 @@ public class LobbyView extends Application {
         nomeField.setMaxWidth(300);
         nomeField.getStyleClass().add("nome-field");
 
-
-
-
         // Aggiungi elementi al layout
         root.getChildren().addAll(promptLabel);
 
@@ -67,19 +64,11 @@ public class LobbyView extends Application {
         }
     }
     
-    private void mostraGriglia(Stage primaryStage) {
-        // Crea il ServerGameManager con righe e colonne
-        int righe = 10;
-        int colonne = 10;
-        ServerGameManager gameManager = new ServerGameManager(righe, colonne); // Passaggio dei parametri
-        GiocoView.setGameManager(gameManager); // Imposta il game manager
-
-        // Crea la vista della griglia
-        GrigliaView grigliaView = new GrigliaView(gameManager); 
-        Scene scenaGriglia = grigliaView.creaScena(primaryStage); // Ottieni la scena per la griglia
-
-        // Imposta la nuova scena per il primaryStage
-        primaryStage.setScene(scenaGriglia);
+    private void mostraPosizionamentoNavi(Stage primaryStage) {
+        // Avvia la fase di posizionamento delle navi
+        PosizionamentoNaviView posizionamentoView = new PosizionamentoNaviView();
+        Scene scenaPosizionamento = posizionamentoView.creaScena(primaryStage);
+        primaryStage.setScene(scenaPosizionamento);
         primaryStage.show();
     }
 
@@ -88,10 +77,10 @@ public class LobbyView extends Application {
     }
 
     public Scene creaScena(Stage primaryStage) {
-    	if (!GiocoController.getInstance().isConnesso()) {
-    	    System.out.println("[CLIENT] Connessione non riuscita.");
-    	    return new Scene(new VBox(new Label("Errore di connessione.")), 800, 600);
-    	}
+        if (!GiocoController.getInstance().isConnesso()) {
+            System.out.println("[CLIENT] Connessione non riuscita.");
+            return new Scene(new VBox(new Label("Errore di connessione.")), 800, 600);
+        }
 
         VBox root = new VBox(20);
         root.setStyle("-fx-background-color: #1b1b1b; -fx-padding: 50px;");
@@ -110,7 +99,7 @@ public class LobbyView extends Application {
         Scene scene = new Scene(root, 800, 600);
         scene.getStylesheets().add(getClass().getResource("/warstyle.css").toExternalForm());
 
-        // ✅ Thread per ricevere messaggio START
+        // ✅ Thread per ricevere messaggio START (ora avvia il posizionamento delle navi)
         new Thread(() -> {
             try {
                 while (true) {
@@ -120,7 +109,7 @@ public class LobbyView extends Application {
                     System.out.println("Messaggio ricevuto in lobby: " + msg);
 
                     if (msg.getComando() == Comando.START) {
-                        javafx.application.Platform.runLater(() -> mostraGriglia(primaryStage));
+                        javafx.application.Platform.runLater(() -> mostraPosizionamentoNavi(primaryStage));
                         break; // Esci dal loop della lobby
                     }
                 }
@@ -131,7 +120,4 @@ public class LobbyView extends Application {
 
         return scene;
     }
-
-
-
 }

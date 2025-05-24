@@ -14,5 +14,7 @@ public enum Comando {
     ERRORE, 
     AGGIORNA_Lobby, 
     START,
-    DISCONNESSIONE
+    DISCONNESSIONE,
+    POSIZIONA_NAVI,
+    INIZIO_BATTAGLIA
 }

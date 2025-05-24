@@ -52,6 +52,11 @@ public class ClientHandler implements Runnable {
                         case INVIA_NOME -> {
                             LogUtility.info("[SERVER] Nome giocatore ricevuto: " + messaggio.getContenuto());
                         }
+                        case POSIZIONA_NAVI -> {
+                            // Gestisci il posizionamento delle navi
+                            LogUtility.info("[SERVER] Ricevuto posizionamento navi dal client " + idGiocatore);
+                            serverManager.gestisciPosizionamentoNavi(idGiocatore, messaggio.getContenuto());
+                        }
                         case ATTACCA -> {
                             // Gestisci l'attacco tramite il ServerSocketManager
                             if (messaggio.getContenuto() instanceof Posizione posizione) {
