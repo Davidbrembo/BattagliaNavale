@@ -125,12 +125,36 @@ public class ServerSocketManager {
         // Esegui l'attacco
         RisultatoAttacco risultato = gameManager.attacca(posizione);
         
-        // Invia il risultato a entrambi i giocatori
-        Messaggio msgRisultato = new Messaggio(Comando.RISULTATO_ATTACCO, risultato);
-        for (ClientHandler handler : clientHandlers) {
-            handler.inviaMessaggio(msgRisultato);
-        }
+        // Invia messaggi differenziati:
+        // 1. All'attaccante: RISULTATO_ATTACCO (per aggiornare la griglia avversario)
+        // 2. Al difensore: ATTACCO_RICEVUTO (per aggiornare la propria griglia)
+        int attaccante = giocatoreID;
+        int difensore = 1 - giocatoreID;
         
+        // Messaggio per l'attaccante (risultato del suo attacco)
+        Messaggio msgRisultatoAttacco = new Messaggio(Comando.RISULTATO_ATTACCO, risultato);
+        clientHandlers.get(attaccante).inviaMessaggio(msgRisultatoAttacco);
+        
+        // Messaggio per il difensore (attacco ricevuto sulla sua griglia)
+        Messaggio msgAttaccoRicevuto = new Messaggio(Comando.ATTACCO_RICEVUTO, risultato);
+        clientHandlers.get(difensore).inviaMessaggio(msgAttaccoRicevuto);
+        
+        LogUtility.info("[SERVER] Risultato attacco: " + (risultato.isColpito() ? "COLPITO" : "MANCATO") + 
+                       " in posizione " + posizione);
+        /*
+        // Controlla se la partita è finita
+        if (risultato.isColpito() && gameManager.getGriglie()[difensore].tutteNaviAffondate()) {
+            // Partita finita, l'attaccante ha vinto
+            Messaggio msgVittoria = new Messaggio(Comando.VITTORIA, "Hai vinto! Tutte le navi nemiche affondate!");
+            Messaggio msgSconfitta = new Messaggio(Comando.SCONFITTA, "Hai perso! Tutte le tue navi sono affondate!");
+            
+            clientHandlers.get(attaccante).inviaMessaggio(msgVittoria);
+            clientHandlers.get(difensore).inviaMessaggio(msgSconfitta);
+            
+            LogUtility.info("[SERVER] Partita terminata! Vincitore: Giocatore " + attaccante);
+            return;
+        }
+        */
         // Se non ha colpito, passa il turno
         if (!risultato.isColpito()) {
             gameManager.passaTurno();
