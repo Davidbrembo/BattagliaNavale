@@ -112,7 +112,7 @@ public class ClientHandler implements Runnable {
 
     public void inviaMessaggio(Messaggio messaggio) {
         if (clientSocket == null || clientSocket.isClosed()) {
-            LogUtility.info("[SERVER] Tentativo invio messaggio su socket chiuso per client " + idGiocatore);
+            LogUtility.info("[SERVER] Tentativo di invio messaggio su socket chiuso per client " + idGiocatore);
             return;
         }
         try {
