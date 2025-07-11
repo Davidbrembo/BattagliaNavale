@@ -92,6 +92,9 @@ public class ServerSocketManager {
                 // Informa il primo giocatore che è il suo turno
                 clientHandlers.get(0).inviaMessaggio(new Messaggio(Comando.TURNO, "È il tuo turno!"));
                 clientHandlers.get(1).inviaMessaggio(new Messaggio(Comando.STATO, "Aspetta il tuo turno"));
+                
+                // Invia notifica di connessione nella chat
+                inviaNotificaChat("🌊 La battaglia navale è iniziata! Buona fortuna!");
             }
             
         } catch (ClassCastException e) {
@@ -141,20 +144,7 @@ public class ServerSocketManager {
         
         LogUtility.info("[SERVER] Risultato attacco: " + (risultato.isColpito() ? "COLPITO" : "MANCATO") + 
                        " in posizione " + posizione);
-        /*
-        // Controlla se la partita è finita
-        if (risultato.isColpito() && gameManager.getGriglie()[difensore].tutteNaviAffondate()) {
-            // Partita finita, l'attaccante ha vinto
-            Messaggio msgVittoria = new Messaggio(Comando.VITTORIA, "Hai vinto! Tutte le navi nemiche affondate!");
-            Messaggio msgSconfitta = new Messaggio(Comando.SCONFITTA, "Hai perso! Tutte le tue navi sono affondate!");
-            
-            clientHandlers.get(attaccante).inviaMessaggio(msgVittoria);
-            clientHandlers.get(difensore).inviaMessaggio(msgSconfitta);
-            
-            LogUtility.info("[SERVER] Partita terminata! Vincitore: Giocatore " + attaccante);
-            return;
-        }
-        */
+        
         // Se non ha colpito, passa il turno
         if (!risultato.isColpito()) {
             gameManager.passaTurno();
@@ -175,6 +165,51 @@ public class ServerSocketManager {
                 new Messaggio(Comando.TURNO, "Hai colpito! Continua il tuo turno.")
             );
             LogUtility.info("[SERVER] Giocatore " + giocatoreID + " ha colpito, continua il turno");
+        }
+    }
+    
+    // Gestisce i messaggi di chat tra i giocatori
+    public synchronized void gestisciMessaggioChat(int giocatoreID, Object messaggioData) {
+        if (clientHandlers.size() < 2) {
+            LogUtility.warning("[SERVER] Tentativo di invio messaggio chat con meno di 2 giocatori connessi");
+            return;
+        }
+        
+        try {
+            LogUtility.info("[SERVER] Inoltrando messaggio chat dal giocatore " + giocatoreID);
+            
+            // Inoltra il messaggio all'altro giocatore
+            int destinatario = 1 - giocatoreID; // Se è 0 diventa 1, se è 1 diventa 0
+            
+            Messaggio messaggioChat = new Messaggio(Comando.MESSAGGIO_CHAT, messaggioData);
+            clientHandlers.get(destinatario).inviaMessaggio(messaggioChat);
+            
+            LogUtility.info("[SERVER] Messaggio chat inoltrato dal giocatore " + giocatoreID + 
+                           " al giocatore " + destinatario);
+                           
+        } catch (Exception e) {
+            LogUtility.error("[SERVER] Errore nell'gestione messaggio chat: " + e.getMessage());
+        }
+    }
+    
+    // Invia una notifica di sistema nella chat a tutti i giocatori
+    private void inviaNotificaChat(String testo) {
+        if (clientHandlers.size() < 2) return;
+        
+        // Crea un messaggio di sistema (mittente = "Sistema")
+        try {
+            Class<?> messaggioChatClass = Class.forName("client.view.ChatView$MessaggioChat");
+            Object messaggioSistema = messaggioChatClass
+                .getDeclaredConstructor(String.class, String.class)
+                .newInstance("🤖 Sistema", testo);
+            
+            Messaggio msg = new Messaggio(Comando.MESSAGGIO_CHAT, messaggioSistema);
+            
+            for (ClientHandler handler : clientHandlers) {
+                handler.inviaMessaggio(msg);
+            }
+        } catch (Exception e) {
+            LogUtility.error("[SERVER] Errore nell'invio notifica chat: " + e.getMessage());
         }
     }
 

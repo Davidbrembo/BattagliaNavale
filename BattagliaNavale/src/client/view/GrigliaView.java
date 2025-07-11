@@ -27,16 +27,22 @@ public class GrigliaView {
     private Label statoLabel;
     private boolean mioTurno = false;
     private int myPlayerID = -1;
+    private ChatView chatView; // Componente chat
 
     public GrigliaView(ServerGameManager gameManager) {
         this.gameManager = gameManager;
         this.giocoController = GiocoController.getInstance();
+        this.chatView = new ChatView(); // Inizializza la chat
     }
 
     public Scene creaScena(Stage primaryStage) {
-        VBox root = new VBox(10);
-        root.setAlignment(Pos.CENTER);
-        root.setStyle("-fx-background-color: #1b1b1b; -fx-padding: 20px;");
+        HBox mainContainer = new HBox(20); // Container principale orizzontale
+        mainContainer.setAlignment(Pos.CENTER);
+        mainContainer.setStyle("-fx-background-color: #1b1b1b; -fx-padding: 20px;");
+
+        // Container per il gioco (parte sinistra)
+        VBox gameContainer = new VBox(10);
+        gameContainer.setAlignment(Pos.CENTER);
 
         // Label per lo stato del gioco
         statoLabel = new Label("Attendere inizio partita...");
@@ -63,12 +69,15 @@ public class GrigliaView {
         containerAvversario.getChildren().addAll(labelAvversario, gridAvversario);
 
         griglie.getChildren().addAll(containerPropria, containerAvversario);
-        root.getChildren().addAll(statoLabel, griglie);
+        gameContainer.getChildren().addAll(statoLabel, griglie);
+
+        // Aggiungi il game container e la chat al container principale
+        mainContainer.getChildren().addAll(gameContainer, chatView.getChatContainer());
 
         // Thread per ricevere messaggi dal server
         avviaAscoltoServer();
 
-        Scene scena = new Scene(root, 1200, 700);
+        Scene scena = new Scene(mainContainer, 1500, 700); // Aumentata la larghezza per la chat
         return scena;
     }
 
@@ -164,11 +173,13 @@ public class GrigliaView {
                 mioTurno = true;
                 statoLabel.setText("È il tuo turno! Clicca sulla griglia avversario per attaccare.");
                 statoLabel.setStyle("-fx-text-fill: green; -fx-font-size: 18px; -fx-font-weight: bold;");
+                chatView.mostraNotificaTurno(true); // Notifica nella chat
             }
             case STATO -> {
                 mioTurno = false;
                 statoLabel.setText((String) messaggio.getContenuto());
                 statoLabel.setStyle("-fx-text-fill: yellow; -fx-font-size: 18px; -fx-font-weight: bold;");
+                chatView.mostraNotificaTurno(false); // Notifica nella chat
             }
             case RISULTATO_ATTACCO -> {
                 RisultatoAttacco risultato = (RisultatoAttacco) messaggio.getContenuto();
@@ -192,11 +203,16 @@ public class GrigliaView {
                 statoLabel.setStyle("-fx-text-fill: red; -fx-font-size: 20px; -fx-font-weight: bold;");
                 disabilitaGriglia();
             }
+            case MESSAGGIO_CHAT -> {
+                // Gestisci i messaggi di chat ricevuti
+                ChatView.MessaggioChat messaggioChat = (ChatView.MessaggioChat) messaggio.getContenuto();
+                chatView.riceviMessaggio(messaggioChat);
+            }
             case ERRORE -> {
                 statoLabel.setText((String) messaggio.getContenuto());
                 statoLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px; -fx-font-weight: bold;");
             }
-		default -> throw new IllegalArgumentException("Unexpected value: " + messaggio.getComando());
+            default -> throw new IllegalArgumentException("Unexpected value: " + messaggio.getComando());
         }
     }
 

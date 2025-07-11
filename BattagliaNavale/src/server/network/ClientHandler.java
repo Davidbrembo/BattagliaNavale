@@ -18,11 +18,13 @@ public class ClientHandler implements Runnable {
     private ObjectInputStream in;
     private ObjectOutputStream out;
     private ClientSocket cs;
+    private String nomeGiocatore; // Nome predefinito
 
     public ClientHandler(Socket socket, int idGiocatore, ServerSocketManager serverManager) {
         this.clientSocket = socket;
         this.idGiocatore = idGiocatore;
         this.serverManager = serverManager;
+        this.nomeGiocatore = "Giocatore " + (idGiocatore + 1); // Inizializza il nome predefinito
     }
 
     @Override
@@ -50,7 +52,8 @@ public class ClientHandler implements Runnable {
                             LogUtility.info("[SERVER] Assegnato ID " + idGiocatore + " al client.");
                         }
                         case INVIA_NOME -> {
-                            LogUtility.info("[SERVER] Nome giocatore ricevuto: " + messaggio.getContenuto());
+                            nomeGiocatore = (String) messaggio.getContenuto();
+                            LogUtility.info("[SERVER] Nome giocatore ricevuto: " + nomeGiocatore);
                         }
                         case POSIZIONA_NAVI -> {
                             // Gestisci il posizionamento delle navi
@@ -64,6 +67,11 @@ public class ClientHandler implements Runnable {
                             } else {
                                 LogUtility.error("[SERVER] Attacco ricevuto senza posizione valida");
                             }
+                        }
+                        case MESSAGGIO_CHAT -> {
+                            // Gestisci i messaggi di chat
+                            LogUtility.info("[SERVER] Messaggio chat ricevuto dal client " + idGiocatore);
+                            serverManager.gestisciMessaggioChat(idGiocatore, messaggio.getContenuto());
                         }
                         case DISCONNESSIONE -> {
                             LogUtility.info("[SERVER] Client " + idGiocatore + " disconnesso.");
@@ -122,5 +130,13 @@ public class ClientHandler implements Runnable {
             LogUtility.error("[SERVER] Errore nell'invio al client " + idGiocatore + ": " + e.getMessage());
             closeConnection();
         }
+    }
+
+    public String getNomeGiocatore() {
+        return nomeGiocatore;
+    }
+
+    public int getIdGiocatore() {
+        return idGiocatore;
     }
 }
