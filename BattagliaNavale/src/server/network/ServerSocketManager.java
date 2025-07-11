@@ -120,11 +120,28 @@ public class ServerSocketManager {
             List<List<Posizione>> naviGiocatore = (List<List<Posizione>>) naviData;
             LogUtility.info("[SERVER] Ricevute " + naviGiocatore.size() + " navi dal giocatore " + giocatoreID);
             
+            // Validazione del numero di navi
+            if (!validaNumeroNavi(naviGiocatore)) {
+                clientHandlers.get(giocatoreID).inviaMessaggio(
+                    new Messaggio(Comando.ERRORE, "Numero di navi non valido! Riposiziona la flotta.")
+                );
+                return;
+            }
+            
+            // Validazione delle dimensioni delle navi
+            if (!validaDimensioniNavi(naviGiocatore)) {
+                clientHandlers.get(giocatoreID).inviaMessaggio(
+                    new Messaggio(Comando.ERRORE, "Dimensioni delle navi non valide! Riposiziona la flotta.")
+                );
+                return;
+            }
+            
             // Aggiungi le navi alla griglia del giocatore
             for (List<Posizione> posizioni : naviGiocatore) {
                 NaveServer nave = new NaveServer(posizioni);
                 gameManager.getGriglie()[giocatoreID].aggiungiNave(nave);
-                LogUtility.info("[SERVER] Aggiunta nave per giocatore " + giocatoreID + ": " + posizioni);
+                LogUtility.info("[SERVER] Aggiunta nave per giocatore " + giocatoreID + 
+                               " (lunghezza " + posizioni.size() + "): " + posizioni);
             }
             
             naviPosizionate[giocatoreID] = true;
@@ -155,6 +172,46 @@ public class ServerSocketManager {
                 new Messaggio(Comando.ERRORE, "Errore nel posizionamento delle navi")
             );
         }
+    }
+    
+    /**
+     * Valida che il numero di navi sia corretto (5 navi totali)
+     */
+    private boolean validaNumeroNavi(List<List<Posizione>> navi) {
+        return navi.size() == 5; // 1 Portaerei + 1 Incrociatore + 2 Cacciatorpediniere + 1 Sottomarino
+    }
+    
+    /**
+     * Valida che le dimensioni delle navi siano corrette
+     */
+    private boolean validaDimensioniNavi(List<List<Posizione>> navi) {
+        // Conta le navi per dimensione
+        int[] conteggioDimensioni = new int[6]; // indici 0-5, usiamo 2-5
+        
+        for (List<Posizione> nave : navi) {
+            int lunghezza = nave.size();
+            if (lunghezza < 2 || lunghezza > 5) {
+                LogUtility.warning("[SERVER] Nave con lunghezza non valida: " + lunghezza);
+                return false;
+            }
+            conteggioDimensioni[lunghezza]++;
+        }
+        
+        // Verifica il numero corretto per ogni tipo di nave
+        boolean valido = conteggioDimensioni[5] == 1 &&  // 1 Portaerei (5)
+                         conteggioDimensioni[4] == 1 &&  // 1 Incrociatore (4)
+                         conteggioDimensioni[3] == 2 &&  // 2 Cacciatorpediniere (3)
+                         conteggioDimensioni[2] == 1;    // 1 Sottomarino (2)
+        
+        if (!valido) {
+            LogUtility.warning("[SERVER] Composizione flotta non valida: " +
+                             "Portaerei(" + conteggioDimensioni[5] + "), " +
+                             "Incrociatore(" + conteggioDimensioni[4] + "), " +
+                             "Cacciatorpediniere(" + conteggioDimensioni[3] + "), " +
+                             "Sottomarino(" + conteggioDimensioni[2] + ")");
+        }
+        
+        return valido;
     }
     
     // Gestisce un attacco da parte di un giocatore

@@ -11,6 +11,7 @@ import utility.LogUtility;
 import javafx.application.Platform;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -30,6 +31,7 @@ public class GiocoController {
     private int myPlayerID = -1;
     private boolean mioTurno = false;
     private StatoPartita statoPartita = StatoPartita.LOBBY;
+    private List<List<Posizione>> mieiNaviPosizionate = new ArrayList<>(); // Navi del giocatore
     
     // View - Riferimenti alle viste per aggiornamenti
     private GrigliaView grigliaView;
@@ -157,6 +159,7 @@ public class GiocoController {
 
     private void gestisciInizioBattaglia() {
         statoPartita = StatoPartita.BATTAGLIA;
+        battagliaIniziata = true;
         LogUtility.info("[CLIENT] Inizio battaglia!");
         if (chatView != null) {
             chatView.mostraNotificaSistema("🌊 La battaglia è iniziata!");
@@ -165,6 +168,11 @@ public class GiocoController {
         // Callback per la transizione di schermata
         if (onInizioBattagliaCallback != null) {
             onInizioBattagliaCallback.run();
+        }
+        
+        // Aggiorna la griglia con le navi se già registrata
+        if (grigliaView != null) {
+            Platform.runLater(() -> grigliaView.coloraNaviProprie());
         }
     }
 
@@ -303,9 +311,17 @@ public class GiocoController {
      * Invia il posizionamento delle navi
      */
     public void inviaPosizionamentoNavi(List<List<Posizione>> navi) {
+        // Salva le navi localmente per mostrarle nella griglia
+        this.mieiNaviPosizionate = new ArrayList<>(navi);
+        
         inviaMessaggio(new Messaggio(Comando.POSIZIONA_NAVI, navi));
         statoPartita = StatoPartita.ATTESA_BATTAGLIA;
-        LogUtility.info("[CLIENT] Navi inviate al server");
+        LogUtility.info("[CLIENT] Navi inviate al server - Totale: " + navi.size());
+        
+        // Debug delle navi posizionate
+        for (int i = 0; i < navi.size(); i++) {
+            LogUtility.info("[CLIENT] Nave " + (i+1) + " (lunghezza " + navi.get(i).size() + "): " + navi.get(i));
+        }
     }
 
     // ================== NAVIGATION CALLBACKS ==================
@@ -334,6 +350,11 @@ public class GiocoController {
 
     public void registraGrigliaView(GrigliaView view) {
         this.grigliaView = view;
+        
+        // Se la battaglia è già iniziata, colora subito le navi
+        if (statoPartita == StatoPartita.BATTAGLIA) {
+            Platform.runLater(() -> view.coloraNaviProprie());
+        }
     }
 
     public void registraChatView(ChatView view) {
@@ -368,6 +389,11 @@ public class GiocoController {
     public boolean isMioTurno() { return mioTurno; }
     public StatoPartita getStatoPartita() { return statoPartita; }
     public ClientSocket getClientSocket() { return clientSocket; }
+    public List<List<Posizione>> getMieNavi() { 
+        LogUtility.info("[CONTROLLER] getMieNavi() chiamato - Navi salvate: " + 
+                       (mieiNaviPosizionate != null ? mieiNaviPosizionate.size() : "null"));
+        return mieiNaviPosizionate; 
+    }
 
     // ================== INNER ENUM ==================
 

@@ -13,6 +13,9 @@ import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import shared.model.Posizione;
 import shared.model.RisultatoAttacco;
+import utility.LogUtility;
+
+import java.util.List;
 
 /**
  * View responsabile solo della visualizzazione delle griglie di gioco.
@@ -35,6 +38,8 @@ public class GrigliaView {
         
         // Registra questa view nel controller
         controller.registraGrigliaView(this);
+        
+        LogUtility.info("[GRIGLIA] GrigliaView creata e registrata nel controller");
     }
 
     public Scene creaScena(Stage primaryStage) {
@@ -77,6 +82,13 @@ public class GrigliaView {
         mainContainer.getChildren().addAll(gameContainer, chatView.getChatContainer());
 
         Scene scena = new Scene(mainContainer, 1500, 700);
+        
+        // Forza la colorazione delle navi dopo che la scena è stata creata
+        Platform.runLater(() -> {
+            LogUtility.info("[GRIGLIA] Forzando colorazione navi dopo creazione scena...");
+            coloraNaviProprie();
+        });
+        
         return scena;
     }
 
@@ -149,6 +161,36 @@ public class GrigliaView {
     }
 
     // ================== PUBLIC INTERFACE - Chiamate dal Controller ==================
+
+    /**
+     * Metodo pubblico per colorare le navi (chiamato dal Controller)
+     */
+    public void coloraNaviProprie() {
+        Platform.runLater(() -> {
+            LogUtility.info("[GRIGLIA] Tentativo di colorazione navi...");
+            List<List<Posizione>> mieNavi = controller.getMieNavi();
+            
+            if (mieNavi != null && !mieNavi.isEmpty()) {
+                LogUtility.info("[GRIGLIA] Colorando " + mieNavi.size() + " navi nella griglia propria");
+                
+                for (int i = 0; i < mieNavi.size(); i++) {
+                    List<Posizione> nave = mieNavi.get(i);
+                    Color coloreNave = getColoreNavePerLunghezza(nave.size());
+                    
+                    for (Posizione pos : nave) {
+                        if (pos.getRiga() < 10 && pos.getColonna() < 10) {
+                            grigliaPropria[pos.getRiga()][pos.getColonna()].setFill(coloreNave);
+                            LogUtility.info("[GRIGLIA] Colorata cella (" + pos.getRiga() + "," + pos.getColonna() + ")");
+                        }
+                    }
+                    
+                    LogUtility.info("[GRIGLIA] Colorata nave " + (i+1) + " di lunghezza " + nave.size());
+                }
+            } else {
+                LogUtility.warning("[GRIGLIA] Nessuna nave trovata per la colorazione - getMieNavi() = " + mieNavi);
+            }
+        });
+    }
 
     /**
      * Aggiorna il testo di stato del gioco (chiamato dal Controller)
@@ -282,6 +324,19 @@ public class GrigliaView {
                 grigliaAvversario[i][j].setOpacity(0.5);
             }
         }
+    }
+
+    /**
+     * Restituisce il colore della nave basato sulla sua lunghezza
+     */
+    private Color getColoreNavePerLunghezza(int lunghezza) {
+        return switch (lunghezza) {
+            case 5 -> Color.DARKRED;     // Portaerei
+            case 4 -> Color.DARKBLUE;    // Incrociatore
+            case 3 -> Color.DARKGREEN;   // Cacciatorpediniere
+            case 2 -> Color.DARKORANGE;  // Sottomarino
+            default -> Color.GRAY;       // Fallback
+        };
     }
 
     // ================== GETTERS ==================
