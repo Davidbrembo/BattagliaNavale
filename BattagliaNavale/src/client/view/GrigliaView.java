@@ -14,29 +14,34 @@ import javafx.stage.Stage;
 import shared.model.Posizione;
 import shared.model.RisultatoAttacco;
 import server.model.ServerGameManager;
-import shared.protocol.Comando;
-import shared.protocol.Messaggio;
 
+/**
+ * View responsabile solo della visualizzazione delle griglie di gioco.
+ * Tutta la logica di business è delegata al Controller.
+ */
 public class GrigliaView {
 
     private ServerGameManager gameManager;
-    private GiocoController giocoController;
-    private Rectangle[][] grigliaPropria;      // Griglia con le proprie navi
-    private Rectangle[][] grigliaAvversario;   // Griglia per attaccare l'avversario
-    private boolean[][] celleAttaccateAvversario; // Celle già attaccate sulla griglia avversario
+    private GiocoController controller;
+    private ChatView chatView;
+    
+    // UI Components
+    private Rectangle[][] grigliaPropria;
+    private Rectangle[][] grigliaAvversario;
+    private boolean[][] celleAttaccateAvversario;
     private Label statoLabel;
-    private boolean mioTurno = false;
-    private int myPlayerID = -1;
-    private ChatView chatView; // Componente chat
 
     public GrigliaView(ServerGameManager gameManager) {
         this.gameManager = gameManager;
-        this.giocoController = GiocoController.getInstance();
-        this.chatView = new ChatView(); // Inizializza la chat
+        this.controller = GiocoController.getInstance();
+        this.chatView = new ChatView();
+        
+        // Registra questa view nel controller
+        controller.registraGrigliaView(this);
     }
 
     public Scene creaScena(Stage primaryStage) {
-        HBox mainContainer = new HBox(20); // Container principale orizzontale
+        HBox mainContainer = new HBox(20);
         mainContainer.setAlignment(Pos.CENTER);
         mainContainer.setStyle("-fx-background-color: #1b1b1b; -fx-padding: 20px;");
 
@@ -74,12 +79,11 @@ public class GrigliaView {
         // Aggiungi il game container e la chat al container principale
         mainContainer.getChildren().addAll(gameContainer, chatView.getChatContainer());
 
-        // Thread per ricevere messaggi dal server
-        avviaAscoltoServer();
-
-        Scene scena = new Scene(mainContainer, 1500, 700); // Aumentata la larghezza per la chat
+        Scene scena = new Scene(mainContainer, 1500, 700);
         return scena;
     }
+
+    // ================== UI CREATION ==================
 
     private GridPane creaGriglia(boolean isPropria) {
         GridPane grid = new GridPane();
@@ -100,13 +104,13 @@ public class GrigliaView {
             grigliaCorrente = grigliaAvversario;
         }
 
-        // Aggiungi le celle alla griglia
+        // Crea le celle della griglia
         for (int i = 0; i < righe; i++) {
             for (int j = 0; j < colonne; j++) {
                 Rectangle cella = new Rectangle(30, 30);
                 
                 if (isPropria) {
-                    // Griglia propria: mostra le navi (per ora blu, poi andranno posizionate)
+                    // Griglia propria: mostra le navi
                     cella.setFill(Color.LIGHTBLUE);
                 } else {
                     // Griglia avversario: inizialmente grigia (sconosciuta)
@@ -114,29 +118,7 @@ public class GrigliaView {
                     
                     // Solo la griglia avversario è cliccabile per gli attacchi
                     Posizione posizione = new Posizione(i, j);
-                    cella.setOnMouseClicked(new EventHandler<MouseEvent>() {
-                        @Override
-                        public void handle(MouseEvent event) {
-                            if (!mioTurno) {
-                                Platform.runLater(() -> {
-                                    statoLabel.setText("Non è il tuo turno!");
-                                    statoLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px; -fx-font-weight: bold;");
-                                });
-                                return;
-                            }
-                            
-                            // Controlla se la cella è già stata attaccata
-                            if (celleAttaccateAvversario[posizione.getRiga()][posizione.getColonna()]) {
-                                Platform.runLater(() -> {
-                                    statoLabel.setText("Cella già attaccata! Scegli un'altra posizione.");
-                                    statoLabel.setStyle("-fx-text-fill: orange; -fx-font-size: 18px; -fx-font-weight: bold;");
-                                });
-                                return;
-                            }
-                            
-                            inviaAttaccoAlServer(posizione);
-                        }
-                    });
+                    cella.setOnMouseClicked(createAttackHandler(posizione));
                 }
 
                 cella.setStroke(Color.BLACK);
@@ -148,121 +130,166 @@ public class GrigliaView {
         return grid;
     }
 
-    private void avviaAscoltoServer() {
-        new Thread(() -> {
-            try {
-                while (true) {
-                    Messaggio msg = giocoController.clientSocket.riceviMessaggio();
-                    if (msg == null) break;
-
-                    Platform.runLater(() -> gestisciMessaggioServer(msg));
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+    /**
+     * Crea un handler per gli attacchi che delega al Controller
+     */
+    private EventHandler<MouseEvent> createAttackHandler(Posizione posizione) {
+        return event -> {
+            // Validazioni UI immediate
+            if (!controller.isMioTurno()) {
+                aggiornaStatoGioco("Non è il tuo turno!");
+                return;
             }
-        }).start();
+            
+            if (celleAttaccateAvversario[posizione.getRiga()][posizione.getColonna()]) {
+                aggiornaStatoGioco("Cella già attaccata! Scegli un'altra posizione.");
+                return;
+            }
+            
+            // Delega l'attacco al Controller
+            controller.attacca(posizione);
+        };
     }
 
-    private void gestisciMessaggioServer(Messaggio messaggio) {
-        switch (messaggio.getComando()) {
-            case ASSEGNA_ID -> {
-                myPlayerID = (Integer) messaggio.getContenuto();
-                statoLabel.setText("Sei il giocatore " + (myPlayerID + 1));
-            }
-            case TURNO -> {
-                mioTurno = true;
-                statoLabel.setText("È il tuo turno! Clicca sulla griglia avversario per attaccare.");
+    // ================== PUBLIC INTERFACE - Chiamate dal Controller ==================
+
+    /**
+     * Aggiorna il testo di stato del gioco (chiamato dal Controller)
+     */
+    public void aggiornaStatoGioco(String stato) {
+        Platform.runLater(() -> {
+            statoLabel.setText(stato);
+            // Colori diversi basati sul contenuto del messaggio
+            if (stato.contains("turno")) {
                 statoLabel.setStyle("-fx-text-fill: green; -fx-font-size: 18px; -fx-font-weight: bold;");
-                chatView.mostraNotificaTurno(true); // Notifica nella chat
-            }
-            case STATO -> {
-                mioTurno = false;
-                statoLabel.setText((String) messaggio.getContenuto());
-                statoLabel.setStyle("-fx-text-fill: yellow; -fx-font-size: 18px; -fx-font-weight: bold;");
-                chatView.mostraNotificaTurno(false); // Notifica nella chat
-            }
-            case RISULTATO_ATTACCO -> {
-                RisultatoAttacco risultato = (RisultatoAttacco) messaggio.getContenuto();
-                // Questo è il risultato del MIO attacco sulla griglia avversario
-                aggiornaCellaAvversario(risultato);
-            }
-            case ATTACCO_RICEVUTO -> {
-                // Questo rappresenta un attacco che ho ricevuto sulla mia griglia
-                RisultatoAttacco risultato = (RisultatoAttacco) messaggio.getContenuto();
-                aggiornaCellaPropria(risultato);
-            }
-            case VITTORIA -> {
-                mioTurno = false;
-                statoLabel.setText("🎉 " + (String) messaggio.getContenuto() + " 🎉");
-                statoLabel.setStyle("-fx-text-fill: gold; -fx-font-size: 20px; -fx-font-weight: bold;");
-                disabilitaGriglia();
-            }
-            case SCONFITTA -> {
-                mioTurno = false;
-                statoLabel.setText("💀 " + (String) messaggio.getContenuto() + " 💀");
-                statoLabel.setStyle("-fx-text-fill: red; -fx-font-size: 20px; -fx-font-weight: bold;");
-                disabilitaGriglia();
-            }
-            case MESSAGGIO_CHAT -> {
-                // Gestisci i messaggi di chat ricevuti
-                ChatView.MessaggioChat messaggioChat = (ChatView.MessaggioChat) messaggio.getContenuto();
-                chatView.riceviMessaggio(messaggioChat);
-            }
-            case ERRORE -> {
-                statoLabel.setText((String) messaggio.getContenuto());
+            } else if (stato.contains("Errore") || stato.contains("Non è")) {
                 statoLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px; -fx-font-weight: bold;");
+            } else if (stato.contains("attendere") || stato.contains("Attacco")) {
+                statoLabel.setStyle("-fx-text-fill: orange; -fx-font-size: 18px; -fx-font-weight: bold;");
+            } else {
+                statoLabel.setStyle("-fx-text-fill: yellow; -fx-font-size: 18px; -fx-font-weight: bold;");
             }
-            default -> throw new IllegalArgumentException("Unexpected value: " + messaggio.getComando());
-        }
+        });
     }
 
-    private void inviaAttaccoAlServer(Posizione posizione) {
-        Messaggio messaggio = new Messaggio(Comando.ATTACCA, posizione);
-        giocoController.inviaMessaggio(messaggio);
-        
-        // Disabilita temporaneamente il turno fino alla risposta del server
-        mioTurno = false;
-        statoLabel.setText("Attacco inviato... attendere risultato");
-        statoLabel.setStyle("-fx-text-fill: orange; -fx-font-size: 18px; -fx-font-weight: bold;");
-    }
-
-    private void aggiornaCellaAvversario(RisultatoAttacco risultato) {
-        Posizione pos = risultato.getPosizione();
-        Rectangle cella = grigliaAvversario[pos.getRiga()][pos.getColonna()];
-        
-        // Marca la cella come attaccata
-        celleAttaccateAvversario[pos.getRiga()][pos.getColonna()] = true;
-        
-        if (risultato.isColpito()) {
-            cella.setFill(Color.RED); // Colpito
-            if (risultato.isNaveAffondata()) {
-                cella.setFill(Color.DARKRED); // Nave affondata
+    /**
+     * Attiva/disattiva la griglia avversario per gli attacchi (chiamato dal Controller)
+     */
+    public void attivaGrigliaAvversario(boolean attiva) {
+        Platform.runLater(() -> {
+            for (int i = 0; i < grigliaAvversario.length; i++) {
+                for (int j = 0; j < grigliaAvversario[i].length; j++) {
+                    Rectangle cella = grigliaAvversario[i][j];
+                    if (attiva && !celleAttaccateAvversario[i][j]) {
+                        // Riattiva solo le celle non ancora attaccate
+                        Posizione pos = new Posizione(i, j);
+                        cella.setOnMouseClicked(createAttackHandler(pos));
+                        cella.setOpacity(1.0);
+                    } else {
+                        // Disattiva tutti i click
+                        cella.setOnMouseClicked(null);
+                        cella.setOpacity(attiva ? 1.0 : 0.7);
+                    }
+                }
             }
-        } else {
-            cella.setFill(Color.BLUE); // Mancato (acqua)
-        }
+        });
     }
 
-    private void aggiornaCellaPropria(RisultatoAttacco risultato) {
-        Posizione pos = risultato.getPosizione();
-        Rectangle cella = grigliaPropria[pos.getRiga()][pos.getColonna()];
-        
-        if (risultato.isColpito()) {
-            cella.setFill(Color.ORANGE); // La mia nave è stata colpita
-            if (risultato.isNaveAffondata()) {
-                cella.setFill(Color.DARKRED); // La mia nave è affondata
+    /**
+     * Aggiorna una cella della griglia avversario (chiamato dal Controller)
+     */
+    public void aggiornaCellaAvversario(RisultatoAttacco risultato) {
+        Platform.runLater(() -> {
+            Posizione pos = risultato.getPosizione();
+            Rectangle cella = grigliaAvversario[pos.getRiga()][pos.getColonna()];
+            
+            // Marca la cella come attaccata
+            celleAttaccateAvversario[pos.getRiga()][pos.getColonna()] = true;
+            
+            if (risultato.isColpito()) {
+                if (risultato.isNaveAffondata()) {
+                    cella.setFill(Color.DARKRED); // Nave affondata
+                } else {
+                    cella.setFill(Color.RED); // Colpito
+                }
+            } else {
+                cella.setFill(Color.BLUE); // Mancato (acqua)
             }
-        } else {
-            cella.setFill(Color.CYAN); // Attacco mancato sulla mia griglia
-        }
+            
+            // Disabilita il click su questa cella
+            cella.setOnMouseClicked(null);
+        });
     }
 
+    /**
+     * Aggiorna una cella della griglia propria (chiamato dal Controller)
+     */
+    public void aggiornaCellaPropria(RisultatoAttacco risultato) {
+        Platform.runLater(() -> {
+            Posizione pos = risultato.getPosizione();
+            Rectangle cella = grigliaPropria[pos.getRiga()][pos.getColonna()];
+            
+            if (risultato.isColpito()) {
+                if (risultato.isNaveAffondata()) {
+                    cella.setFill(Color.DARKRED); // La mia nave è affondata
+                } else {
+                    cella.setFill(Color.ORANGE); // La mia nave è stata colpita
+                }
+            } else {
+                cella.setFill(Color.CYAN); // Attacco mancato sulla mia griglia
+            }
+        });
+    }
+
+    /**
+     * Gestisce la vittoria (chiamato dal Controller)
+     */
+    public void gestisciVittoria(String messaggio) {
+        Platform.runLater(() -> {
+            statoLabel.setText("🎉 " + messaggio + " 🎉");
+            statoLabel.setStyle("-fx-text-fill: gold; -fx-font-size: 20px; -fx-font-weight: bold;");
+            disabilitaGriglia();
+        });
+    }
+
+    /**
+     * Gestisce la sconfitta (chiamato dal Controller)
+     */
+    public void gestisciSconfitta(String messaggio) {
+        Platform.runLater(() -> {
+            statoLabel.setText("💀 " + messaggio + " 💀");
+            statoLabel.setStyle("-fx-text-fill: red; -fx-font-size: 20px; -fx-font-weight: bold;");
+            disabilitaGriglia();
+        });
+    }
+
+    /**
+     * Mostra un errore (chiamato dal Controller)
+     */
+    public void mostraErrore(String errore) {
+        Platform.runLater(() -> {
+            statoLabel.setText("❌ " + errore);
+            statoLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px; -fx-font-weight: bold;");
+        });
+    }
+
+    // ================== PRIVATE UTILITY METHODS ==================
+
+    /**
+     * Disabilita completamente la griglia quando la partita è finita
+     */
     private void disabilitaGriglia() {
-        // Disabilita tutti i click sulla griglia avversario quando la partita è finita
         for (int i = 0; i < grigliaAvversario.length; i++) {
             for (int j = 0; j < grigliaAvversario[i].length; j++) {
                 grigliaAvversario[i][j].setOnMouseClicked(null);
+                grigliaAvversario[i][j].setOpacity(0.5);
             }
         }
+    }
+
+    // ================== GETTERS ==================
+
+    public ChatView getChatView() {
+        return chatView;
     }
 }

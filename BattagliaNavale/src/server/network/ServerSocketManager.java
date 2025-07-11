@@ -43,11 +43,16 @@ public class ServerSocketManager {
 
                 // Se entrambi sono connessi, invia START per iniziare il posizionamento
                 if (clientHandlers.size() == 2) {
-                    LogUtility.info("[SERVER] Entrambi i giocatori connessi. Inizio fase posizionamento navi.");
+                    LogUtility.info("[SERVER] 🚀 Entrambi i giocatori connessi. Inizio fase posizionamento navi.");
                     Messaggio startMsg = new Messaggio(Comando.START, "Inizia il posizionamento delle navi!");
-                    for (ClientHandler ch : clientHandlers) {
-                        ch.inviaMessaggio(startMsg);
-                    }
+                    
+                    LogUtility.info("[SERVER] Inviando START al giocatore 0");
+                    clientHandlers.get(0).inviaMessaggio(startMsg);
+                    
+                    LogUtility.info("[SERVER] Inviando START al giocatore 1");  
+                    clientHandlers.get(1).inviaMessaggio(startMsg);
+                    
+                    LogUtility.info("[SERVER] ✅ Messaggi START inviati a entrambi i giocatori");
                 }
 
             } catch (IOException e) {

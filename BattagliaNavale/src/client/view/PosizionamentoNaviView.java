@@ -7,6 +7,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressIndicator;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
@@ -19,6 +20,10 @@ import shared.protocol.Messaggio;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * View per il posizionamento delle navi.
+ * Segue il pattern MVC delegando la logica al Controller.
+ */
 public class PosizionamentoNaviView {
 
     private Rectangle[][] celle;
@@ -27,30 +32,72 @@ public class PosizionamentoNaviView {
     private List<List<Posizione>> naviPosizionate = new ArrayList<>();
     private List<Posizione> naviOccupate = new ArrayList<>();
     private int naviRimanenti = 3; // Numero di navi da posizionare
-    private GiocoController giocoController;
+    private GiocoController controller;
+    private Stage primaryStage;
 
     public PosizionamentoNaviView() {
-        this.giocoController = GiocoController.getInstance();
+        this.controller = GiocoController.getInstance();
     }
 
     public Scene creaScena(Stage primaryStage) {
+        this.primaryStage = primaryStage;
+        
         VBox root = new VBox(20);
         root.setAlignment(Pos.CENTER);
         root.setStyle("-fx-background-color: #1b1b1b; -fx-padding: 20px;");
 
         // Titolo
-        Label titoloLabel = new Label("POSIZIONA LE TUE NAVI");
-        titoloLabel.setStyle("-fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: bold;");
+        Label titoloLabel = new Label("🚢 POSIZIONA LE TUE NAVI");
+        titoloLabel.setStyle("-fx-text-fill: #4CAF50; -fx-font-size: 28px; -fx-font-weight: bold;");
 
         // Istruzioni
-        Label istruzioniLabel = new Label("Click sinistro: nave orizzontale | Click destro: nave verticale");
-        istruzioniLabel.setStyle("-fx-text-fill: lightgray; -fx-font-size: 14px;");
+        VBox istruzioniBox = new VBox(5);
+        istruzioniBox.setAlignment(Pos.CENTER);
+        
+        Label istruzioni1 = new Label("🖱️ Click sinistro: nave orizzontale");
+        istruzioni1.setStyle("-fx-text-fill: #87CEEB; -fx-font-size: 14px;");
+        
+        Label istruzioni2 = new Label("🖱️ Click destro: nave verticale");
+        istruzioni2.setStyle("-fx-text-fill: #87CEEB; -fx-font-size: 14px;");
+        
+        Label istruzioni3 = new Label("📏 Ogni nave è lunga 3 caselle");
+        istruzioni3.setStyle("-fx-text-fill: #FFD700; -fx-font-size: 14px; -fx-font-weight: bold;");
+        
+        istruzioniBox.getChildren().addAll(istruzioni1, istruzioni2, istruzioni3);
 
         // Label per lo stato
-        statoLabel = new Label("Navi da posizionare: " + naviRimanenti + " (lunghezza: 3 caselle)");
-        statoLabel.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;");
+        statoLabel = new Label("Navi da posizionare: " + naviRimanenti + "/3");
+        statoLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;");
 
         // Crea la griglia
+        GridPane grid = creaGrigliaPosizionamento();
+
+        // Pulsanti
+        HBox buttonBox = new HBox(20);
+        buttonBox.setAlignment(Pos.CENTER);
+
+        Button resetButton = new Button("🔄 Reset");
+        resetButton.setStyle("-fx-font-size: 14px; -fx-padding: 8px 16px; -fx-background-color: #FF5722; -fx-text-fill: white;");
+        resetButton.setOnAction(e -> resetGriglia());
+
+        confermaButton = new Button("✅ Conferma Posizionamento");
+        confermaButton.setStyle("-fx-font-size: 16px; -fx-padding: 10px 20px; -fx-background-color: #4CAF50; -fx-text-fill: white;");
+        confermaButton.setDisable(true);
+        confermaButton.setOnAction(e -> {
+            inviaNaviAlController();
+            mostraAttesaAvversario();
+        });
+
+        buttonBox.getChildren().addAll(resetButton, confermaButton);
+
+        root.getChildren().addAll(titoloLabel, istruzioniBox, statoLabel, grid, buttonBox);
+
+        Scene scena = new Scene(root, 900, 800);
+        scena.getStylesheets().add(getClass().getResource("/warstyle.css").toExternalForm());
+        return scena;
+    }
+
+    private GridPane creaGrigliaPosizionamento() {
         GridPane grid = new GridPane();
         grid.setHgap(2);
         grid.setVgap(2);
@@ -63,9 +110,10 @@ public class PosizionamentoNaviView {
         // Crea le celle della griglia
         for (int i = 0; i < righe; i++) {
             for (int j = 0; j < colonne; j++) {
-                Rectangle cella = new Rectangle(30, 30);
+                Rectangle cella = new Rectangle(35, 35);
                 cella.setFill(Color.LIGHTBLUE);
                 cella.setStroke(Color.BLACK);
+                cella.setStrokeWidth(1);
 
                 final int riga = i;
                 final int colonna = j;
@@ -83,33 +131,25 @@ public class PosizionamentoNaviView {
                     }
                 });
 
+                // Effetto hover
+                cella.setOnMouseEntered(e -> {
+                    if (naviRimanenti > 0 && !naviOccupate.contains(new Posizione(riga, colonna))) {
+                        cella.setFill(Color.LIGHTYELLOW);
+                    }
+                });
+
+                cella.setOnMouseExited(e -> {
+                    if (!naviOccupate.contains(new Posizione(riga, colonna))) {
+                        cella.setFill(Color.LIGHTBLUE);
+                    }
+                });
+
                 celle[i][j] = cella;
                 grid.add(cella, j, i);
             }
         }
 
-        // Pulsante conferma (inizialmente disabilitato)
-        confermaButton = new Button("Conferma Posizionamento");
-        confermaButton.setStyle("-fx-font-size: 16px; -fx-padding: 10px;");
-        confermaButton.setDisable(true);
-        
-        confermaButton.setOnAction(e -> {
-            inviaNaviAlServer();
-            mostraAttesaAvversario(primaryStage);
-        });
-
-        // Pulsante reset
-        Button resetButton = new Button("Reset");
-        resetButton.setStyle("-fx-font-size: 14px; -fx-padding: 8px;");
-        resetButton.setOnAction(e -> resetGriglia());
-
-        HBox buttonBox = new HBox(20, resetButton, confermaButton);
-        buttonBox.setAlignment(Pos.CENTER);
-
-        root.getChildren().addAll(titoloLabel, istruzioniLabel, statoLabel, grid, buttonBox);
-
-        Scene scena = new Scene(root, 800, 700);
-        return scena;
+        return grid;
     }
 
     private void posizionaNave(int riga, int colonna, boolean orizzontale) {
@@ -122,7 +162,7 @@ public class PosizionamentoNaviView {
             
             // Controlla se la posizione è valida
             if (nuovaRiga >= 10 || nuovaColonna >= 10) {
-                mostraErrore("Nave fuori dai limiti della griglia!");
+                mostraErrore("⚠️ Nave fuori dai limiti della griglia!");
                 return;
             }
             
@@ -130,7 +170,7 @@ public class PosizionamentoNaviView {
             
             // Controlla se la posizione è già occupata
             if (naviOccupate.contains(pos)) {
-                mostraErrore("Posizione già occupata da un'altra nave!");
+                mostraErrore("⚠️ Posizione già occupata da un'altra nave!");
                 return;
             }
             
@@ -153,10 +193,11 @@ public class PosizionamentoNaviView {
 
     private void aggiornaStato() {
         if (naviRimanenti > 0) {
-            statoLabel.setText("Navi da posizionare: " + naviRimanenti + " (lunghezza: 3 caselle)");
+            statoLabel.setText("Navi da posizionare: " + naviRimanenti + "/3");
+            statoLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;");
         } else {
-            statoLabel.setText("Tutte le navi posizionate! Clicca Conferma per continuare.");
-            statoLabel.setStyle("-fx-text-fill: lightgreen; -fx-font-size: 16px; -fx-font-weight: bold;");
+            statoLabel.setText("✅ Tutte le navi posizionate! Clicca Conferma per continuare.");
+            statoLabel.setStyle("-fx-text-fill: #4CAF50; -fx-font-size: 18px; -fx-font-weight: bold;");
             confermaButton.setDisable(false);
         }
     }
@@ -176,55 +217,95 @@ public class PosizionamentoNaviView {
         
         // Reset dei controlli
         confermaButton.setDisable(true);
-        statoLabel.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;");
         aggiornaStato();
     }
 
-    private void inviaNaviAlServer() {
-        // Invia le navi posizionate al server
-        Messaggio messaggio = new Messaggio(Comando.POSIZIONA_NAVI, naviPosizionate);
-        giocoController.inviaMessaggio(messaggio);
+    /**
+     * Invia le navi al Controller che le gestirà
+     */
+    private void inviaNaviAlController() {
+        controller.inviaPosizionamentoNavi(naviPosizionate);
     }
 
-    private void mostraAttesaAvversario(Stage primaryStage) {
+    /**
+     * Mostra la schermata di attesa dell'avversario
+     */
+    private void mostraAttesaAvversario() {
         VBox root = new VBox(30);
         root.setAlignment(Pos.CENTER);
         root.setStyle("-fx-background-color: #1b1b1b; -fx-padding: 50px;");
 
-        Label titoloLabel = new Label("Navi Posizionate!");
-        titoloLabel.setStyle("-fx-text-fill: lightgreen; -fx-font-size: 24px; -fx-font-weight: bold;");
+        Label titoloLabel = new Label("🎯 Navi Posizionate!");
+        titoloLabel.setStyle("-fx-text-fill: #4CAF50; -fx-font-size: 28px; -fx-font-weight: bold;");
 
-        Label attesaLabel = new Label("Attendere che l'avversario posizioni le sue navi...");
-        attesaLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
+        Label attesaLabel = new Label("⏳ Attendere che l'avversario posizioni le sue navi...");
+        attesaLabel.setStyle("-fx-text-fill: #FFD700; -fx-font-size: 18px; -fx-font-style: italic;");
 
-        root.getChildren().addAll(titoloLabel, attesaLabel);
+        ProgressIndicator progressIndicator = new ProgressIndicator();
+        progressIndicator.setPrefSize(60, 60);
+        progressIndicator.setStyle("-fx-progress-color: #4CAF50;");
+
+        Label statusLabel = new Label("Sincronizzazione in corso...");
+        statusLabel.setStyle("-fx-text-fill: #87CEEB; -fx-font-size: 14px;");
+
+        root.getChildren().addAll(titoloLabel, attesaLabel, progressIndicator, statusLabel);
 
         Scene scene = new Scene(root, 800, 600);
+        scene.getStylesheets().add(getClass().getResource("/warstyle.css").toExternalForm());
         primaryStage.setScene(scene);
 
-        // Thread per aspettare il messaggio di inizio battaglia
-        new Thread(() -> {
-            try {
-                while (true) {
-                    Messaggio msg = giocoController.clientSocket.riceviMessaggio();
-                    if (msg == null) break;
-                    
-                    if (msg.getComando() == Comando.INIZIO_BATTAGLIA) {
-                        Platform.runLater(() -> mostraGrigliaAttacco(primaryStage));
-                        break;
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
+        // Avvia l'ascolto per l'inizio battaglia
+        avviaAscoltoInizioBattaglia();
     }
 
-    private void mostraGrigliaAttacco(Stage primaryStage) {
+    /**
+     * Avvia l'ascolto per il messaggio INIZIO_BATTAGLIA
+     */
+    private void avviaAscoltoInizioBattaglia() {
+        // Registra il callback nel Controller invece di creare un thread separato
+        controller.setOnInizioBattagliaCallback(() -> mostraGrigliaAttacco());
+    }
+
+    /**
+     * Passa alla griglia di attacco
+     */
+    private void mostraGrigliaAttacco() {
         server.model.ServerGameManager gameManager = new server.model.ServerGameManager(10, 10);
         GrigliaView grigliaView = new GrigliaView(gameManager);
         Scene scenaGriglia = grigliaView.creaScena(primaryStage);
         primaryStage.setScene(scenaGriglia);
+    }
+
+    /**
+     * Mostra errore di connessione
+     */
+    private void mostraErroreConnessione() {
+        VBox root = new VBox(20);
+        root.setStyle("-fx-background-color: #1b1b1b; -fx-padding: 50px;");
+        root.setAlignment(Pos.CENTER);
+
+        Label erroreLabel = new Label("❌ Connessione Persa");
+        erroreLabel.setStyle("-fx-text-fill: red; -fx-font-size: 24px; -fx-font-weight: bold;");
+
+        Label descrizioneLabel = new Label("La connessione al server è stata interrotta durante il posizionamento.");
+        descrizioneLabel.setStyle("-fx-text-fill: white; -fx-font-size: 16px;");
+
+        Button tornaMenuButton = new Button("Torna al Menu");
+        tornaMenuButton.setStyle("-fx-font-size: 16px; -fx-padding: 10px;");
+        tornaMenuButton.setOnAction(e -> {
+            SchermataInizialeView schermataIniziale = new SchermataInizialeView();
+            try {
+                schermataIniziale.start(primaryStage);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        root.getChildren().addAll(erroreLabel, descrizioneLabel, tornaMenuButton);
+
+        Scene scene = new Scene(root, 800, 600);
+        scene.getStylesheets().add(getClass().getResource("/warstyle.css").toExternalForm());
+        primaryStage.setScene(scene);
     }
 
     private void mostraErrore(String messaggio) {

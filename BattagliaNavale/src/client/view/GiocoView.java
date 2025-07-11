@@ -8,15 +8,28 @@ import javafx.scene.control.*;
 import javafx.scene.effect.ColorAdjust;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import shared.protocol.Comando;
-import shared.protocol.Messaggio;
 import utility.Impostazioni;
 import utility.ImpostazioniManager;
 
+/**
+ * View per l'inserimento del nome giocatore.
+ * Segue il pattern MVC delegando la logica al Controller.
+ */
 public class GiocoView extends Application {
+
+    private GiocoController controller;
 
     @Override
     public void start(Stage primaryStage) {
+        // Ottieni il controller
+        controller = GiocoController.getInstance();
+        
+        // Verifica connessione
+        if (!controller.isConnesso()) {
+            mostraErroreConnessione(primaryStage);
+            return;
+        }
+
         VBox root = new VBox(20);
         root.setStyle("-fx-background-color: #1b1b1b; -fx-padding: 50px;");
         root.setAlignment(Pos.CENTER);
@@ -38,15 +51,16 @@ public class GiocoView extends Application {
         Label nomeLabel = new Label();
         nomeLabel.setStyle("-fx-font-size: 24px; -fx-text-fill: white;");
 
+        // Gestione eventi - delegata al Controller
         confermaButton.setOnAction(e -> {
             String nome = nomeField.getText().trim();
             if (nome.isEmpty()) {
                 erroreLabel.setText("Il nome non può essere vuoto.");
             } else {
                 erroreLabel.setText("");
-                GiocoController.getInstance().setNomeGiocatore(nome);
-                Messaggio msg = new Messaggio(Comando.INVIA_NOME, nome);
-                GiocoController.getInstance().inviaMessaggio(msg);
+                
+                // Delega al Controller l'impostazione del nome
+                controller.impostaNomeGiocatore(nome);
 
                 nomeLabel.setText("Giocatore: " + nome);
                 root.getChildren().removeAll(promptLabel, nomeField, confermaButton, erroreLabel);
@@ -71,10 +85,9 @@ public class GiocoView extends Application {
         primaryStage.setResizable(true);
         primaryStage.centerOnScreen();
 
-        // Qui il listener di chiusura finestra che invia il messaggio di disconnessione
+        // Gestione chiusura finestra - delega al Controller
         primaryStage.setOnCloseRequest(event -> {
-            GiocoController.getInstance().inviaMessaggio(new Messaggio(Comando.DISCONNESSIONE, " Questo client si disconnette"));
-            client.network.ClientSocket.getInstance().chiudiConnessione();
+            controller.disconnetti();
         });
 
         primaryStage.show();
@@ -97,8 +110,40 @@ public class GiocoView extends Application {
         primaryStage.setScene(scenaLobby);
         primaryStage.show();
     }
+    
+    private void mostraErroreConnessione(Stage primaryStage) {
+        VBox root = new VBox(20);
+        root.setStyle("-fx-background-color: #1b1b1b; -fx-padding: 50px;");
+        root.setAlignment(Pos.CENTER);
 
+        Label erroreLabel = new Label("❌ Errore di Connessione");
+        erroreLabel.setStyle("-fx-text-fill: red; -fx-font-size: 24px; -fx-font-weight: bold;");
+
+        Label descrizioneLabel = new Label("Impossibile connettersi al server.\nAssicurati che il server sia avviato e riprova.");
+        descrizioneLabel.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-text-alignment: center;");
+
+        Button ritentaButton = new Button("Riprova");
+        ritentaButton.setStyle("-fx-font-size: 16px; -fx-padding: 10px;");
+        ritentaButton.setOnAction(e -> {
+            // Ricrea il controller per ritentare la connessione
+            start(primaryStage);
+        });
+
+        Button esciButton = new Button("Esci");
+        esciButton.setStyle("-fx-font-size: 16px; -fx-padding: 10px;");
+        esciButton.setOnAction(e -> primaryStage.close());
+
+        root.getChildren().addAll(erroreLabel, descrizioneLabel, ritentaButton, esciButton);
+
+        Scene scene = new Scene(root, 800, 600);
+        scene.getStylesheets().add(getClass().getResource("/warstyle.css").toExternalForm());
+        
+        primaryStage.setScene(scene);
+        primaryStage.show();
+    }
+
+    @Deprecated
     public static void setGameManager(server.model.ServerGameManager manager) {
-        // se ti serve puoi implementare
+        // Metodo deprecato - non più necessario con il nuovo pattern MVC
     }
 }

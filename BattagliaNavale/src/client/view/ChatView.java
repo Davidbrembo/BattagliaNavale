@@ -8,13 +8,15 @@ import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-import shared.protocol.Comando;
-import shared.protocol.Messaggio;
 import utility.LogUtility;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * View responsabile solo della visualizzazione della chat.
+ * Tutta la logica di business è delegata al Controller.
+ */
 public class ChatView {
     
     private VBox chatContainer;
@@ -22,13 +24,14 @@ public class ChatView {
     private VBox chatMessages;
     private TextField chatInput;
     private Button sendButton;
-    private GiocoController giocoController;
-    private String nomeGiocatore;
+    private GiocoController controller;
     
     public ChatView() {
-        this.giocoController = GiocoController.getInstance();
-        this.nomeGiocatore = giocoController.getNomeGiocatore();
+        this.controller = GiocoController.getInstance();
         inizializzaChat();
+        
+        // Registra questa view nel controller
+        controller.registraChatView(this);
     }
     
     private void inizializzaChat() {
@@ -71,7 +74,7 @@ public class ChatView {
                            "-fx-font-size: 12px;");
         sendButton.setPrefWidth(40);
         
-        // Eventi
+        // Eventi - delegano al Controller
         sendButton.setOnAction(e -> inviaMessaggio());
         chatInput.setOnAction(e -> inviaMessaggio());
         
@@ -80,27 +83,28 @@ public class ChatView {
         chatContainer.getChildren().addAll(chatTitle, chatScrollPane, chatInputContainer);
         
         // Messaggio di benvenuto
-        aggiungiMessaggioSistema("Chat attivata! Puoi comunicare con l'avversario.");
+        mostraNotificaSistema("Chat attivata! Puoi comunicare con l'avversario.");
     }
     
     public VBox getChatContainer() {
         return chatContainer;
     }
     
+    // ================== USER INTERACTIONS ==================
+    
+    /**
+     * Gestisce l'invio di un messaggio delegando al Controller
+     */
     private void inviaMessaggio() {
         String testo = chatInput.getText().trim();
         if (testo.isEmpty()) {
             return;
         }
         
-        // Crea il messaggio di chat
-        MessaggioChat messaggioChat = new MessaggioChat(nomeGiocatore, testo);
-        Messaggio messaggio = new Messaggio(Comando.MESSAGGIO_CHAT, messaggioChat);
+        // Delega al Controller l'invio del messaggio
+        controller.inviaMessaggioChat(testo);
         
-        // Invia al server
-        giocoController.inviaMessaggio(messaggio);
-        
-        // Mostra il messaggio localmente (come "inviato")
+        // Mostra il messaggio localmente come "inviato"
         Platform.runLater(() -> {
             aggiungiMessaggioPropio(testo);
             chatInput.clear();
@@ -109,11 +113,50 @@ public class ChatView {
         LogUtility.info("[CHAT] Messaggio inviato: " + testo);
     }
     
+    // ================== PUBLIC INTERFACE - Chiamate dal Controller ==================
+    
+    /**
+     * Riceve un messaggio dall'altro giocatore (chiamato dal Controller)
+     */
     public void riceviMessaggio(MessaggioChat messaggio) {
         Platform.runLater(() -> {
             aggiungiMessaggioRicevuto(messaggio.getMittente(), messaggio.getTesto());
         });
     }
+    
+    /**
+     * Mostra una notifica di sistema (chiamato dal Controller)
+     */
+    public void mostraNotificaSistema(String testo) {
+        Platform.runLater(() -> aggiungiMessaggioSistema(testo));
+    }
+    
+    /**
+     * Mostra notifica del turno (chiamato dal Controller)
+     */
+    public void mostraNotificaTurno(boolean mioTurno) {
+        if (mioTurno) {
+            mostraNotificaSistema("È il tuo turno!");
+        } else {
+            mostraNotificaSistema("Turno dell'avversario.");
+        }
+    }
+    
+    /**
+     * Notifica connessione giocatore (chiamato dal Controller)
+     */
+    public void mostraNotificaGiocatoreConnesso(String nomeGiocatore) {
+        mostraNotificaSistema(nomeGiocatore + " si è unito alla partita!");
+    }
+    
+    /**
+     * Notifica disconnessione giocatore (chiamato dal Controller)
+     */
+    public void mostraNotificaGiocatoreDisconnesso(String nomeGiocatore) {
+        mostraNotificaSistema(nomeGiocatore + " si è disconnesso.");
+    }
+    
+    // ================== PRIVATE UI METHODS ==================
     
     private void aggiungiMessaggioPropio(String testo) {
         String timestamp = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
@@ -182,23 +225,11 @@ public class ChatView {
         });
     }
     
-    public void mostraNotificaGiocatoreConnesso(String nomeGiocatore) {
-        aggiungiMessaggioSistema(nomeGiocatore + " si è unito alla partita!");
-    }
+    // ================== INNER CLASS ==================
     
-    public void mostraNotificaGiocatoreDisconnesso(String nomeGiocatore) {
-        aggiungiMessaggioSistema(nomeGiocatore + " si è disconnesso.");
-    }
-    
-    public void mostraNotificaTurno(boolean mioTurno) {
-        if (mioTurno) {
-            aggiungiMessaggioSistema("È il tuo turno!");
-        } else {
-            aggiungiMessaggioSistema("Turno dell'avversario.");
-        }
-    }
-    
-    // Classe interna per rappresentare un messaggio di chat
+    /**
+     * Classe per rappresentare un messaggio di chat
+     */
     public static class MessaggioChat implements java.io.Serializable {
         private static final long serialVersionUID = 1L;
         private String mittente;
