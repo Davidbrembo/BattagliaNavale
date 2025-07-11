@@ -65,8 +65,21 @@ public class GiocoController {
         try {
             clientSocket.connect("localhost", 12345);
             LogUtility.info("[CLIENT] Connessione avvenuta.");
+            
+            // Prova a ricevere il messaggio di benvenuto o di rifiuto
             Messaggio messaggioDiBenvenuto = clientSocket.riceviMessaggio();
-            LogUtility.info("[SERVER] " + messaggioDiBenvenuto);
+            if (messaggioDiBenvenuto != null) {
+                LogUtility.info("[SERVER] " + messaggioDiBenvenuto);
+                
+                // Se il server invia un errore immediatamente, significa che ha rifiutato la connessione
+                if (messaggioDiBenvenuto.getComando() == Comando.ERRORE) {
+                    LogUtility.warning("[CLIENT] Server ha rifiutato la connessione: " + 
+                                     messaggioDiBenvenuto.getContenuto());
+                    clientSocket.chiudiConnessione();
+                    return false;
+                }
+            }
+            
             return true;
         } catch (IOException e) {
             LogUtility.error("[CLIENT] Errore di connessione: " + e.getMessage());
@@ -218,10 +231,25 @@ public class GiocoController {
     }
 
     private void gestisciErrore(String errore) {
-        if (grigliaView != null) {
-            grigliaView.mostraErrore(errore);
-        }
         LogUtility.error("[CLIENT] Errore dal server: " + errore);
+        
+        // Se l'errore indica che la partita è completa, gestiscilo diversamente
+        if (errore.contains("Partita completa") || errore.contains("Massimo 2 giocatori")) {
+            LogUtility.warning("[CLIENT] Server ha rifiutato la connessione: partita completa");
+            connesso = false;
+            
+            // Notifica all'utente che deve riprovare più tardi
+            Platform.runLater(() -> {
+                if (grigliaView != null) {
+                    grigliaView.mostraErrore("Server pieno! Partita già in corso con 2 giocatori.");
+                }
+            });
+        } else {
+            // Altri errori di gioco normali
+            if (grigliaView != null) {
+                grigliaView.mostraErrore(errore);
+            }
+        }
     }
 
     // ================== PUBLIC INTERFACE - ACTIONS ==================

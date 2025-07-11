@@ -28,6 +28,9 @@ public class ServerSocketManager {
     }
 
     public void start() {
+        LogUtility.info("[SERVER] Server avviato. Accettando connessioni...");
+        
+        // Accetta fino a 2 client per la partita
         while (clientHandlers.size() < 2) {
             try {
                 Socket client = serverSocket.accept();
@@ -39,7 +42,7 @@ public class ServerSocketManager {
                 clientHandlers.add(handler);
                 new Thread(handler).start();
 
-                LogUtility.info("[SERVER] Connessi: " + clientHandlers.size());
+                LogUtility.info("[SERVER] Connessi: " + clientHandlers.size() + "/2");
 
                 // Se entrambi sono connessi, invia START per iniziare il posizionamento
                 if (clientHandlers.size() == 2) {
@@ -59,6 +62,50 @@ public class ServerSocketManager {
                 LogUtility.error("[SERVER] Errore I/O: " + e.getMessage());
             }
         }
+        
+        // Ora che abbiamo 2 client, rifiuta ulteriori connessioni
+        LogUtility.info("[SERVER] 🚫 Partita completa (2/2 giocatori). Rifiutando nuove connessioni...");
+        rifiutaNuoveConnessioni();
+    }
+    
+    /**
+     * Rifiuta tutte le nuove connessioni dopo che la partita è iniziata
+     */
+    private void rifiutaNuoveConnessioni() {
+        new Thread(() -> {
+            try {
+                while (!serverSocket.isClosed()) {
+                    Socket clientInEccesso = serverSocket.accept();
+                    LogUtility.warning("[SERVER] ⚠️ Connessione rifiutata da: " + clientInEccesso.getInetAddress() + 
+                                     " (partita già completa)");
+                    
+                    // Invia messaggio di rifiuto e chiudi immediatamente
+                    try {
+                        java.io.ObjectOutputStream out = new java.io.ObjectOutputStream(clientInEccesso.getOutputStream());
+                        out.flush();
+                        
+                        Messaggio rifiuto = new Messaggio(Comando.ERRORE, 
+                            "❌ Partita completa! Massimo 2 giocatori consentiti. Riprova più tardi.");
+                        out.writeObject(rifiuto);
+                        out.flush();
+                        
+                        Thread.sleep(100); // Piccola pausa per assicurarsi che il messaggio arrivi
+                        clientInEccesso.close();
+                        
+                        LogUtility.info("[SERVER] ✅ Client in eccesso disconnesso correttamente");
+                    } catch (Exception e) {
+                        LogUtility.error("[SERVER] Errore nel rifiutare client: " + e.getMessage());
+                        try {
+                            clientInEccesso.close();
+                        } catch (IOException closeError) {
+                            // Ignora errori di chiusura
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                LogUtility.info("[SERVER] Thread di rifiuto connessioni terminato: " + e.getMessage());
+            }
+        }).start();
     }
     
     // Gestisce il posizionamento delle navi da parte di un giocatore
