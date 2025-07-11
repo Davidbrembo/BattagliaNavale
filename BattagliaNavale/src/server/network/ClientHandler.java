@@ -9,15 +9,12 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
-import client.network.ClientSocket;
-
 public class ClientHandler implements Runnable {
     private final Socket clientSocket;
     private final int idGiocatore;
     private final ServerSocketManager serverManager;
     private ObjectInputStream in;
     private ObjectOutputStream out;
-    private ClientSocket cs;
     private String nomeGiocatore; // Nome predefinito
 
     public ClientHandler(Socket socket, int idGiocatore, ServerSocketManager serverManager) {

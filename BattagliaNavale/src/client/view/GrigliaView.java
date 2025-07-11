@@ -13,7 +13,6 @@ import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import shared.model.Posizione;
 import shared.model.RisultatoAttacco;
-import server.model.ServerGameManager;
 
 /**
  * View responsabile solo della visualizzazione delle griglie di gioco.
@@ -21,7 +20,6 @@ import server.model.ServerGameManager;
  */
 public class GrigliaView {
 
-    private ServerGameManager gameManager;
     private GiocoController controller;
     private ChatView chatView;
     
@@ -31,8 +29,7 @@ public class GrigliaView {
     private boolean[][] celleAttaccateAvversario;
     private Label statoLabel;
 
-    public GrigliaView(ServerGameManager gameManager) {
-        this.gameManager = gameManager;
+    public GrigliaView() {
         this.controller = GiocoController.getInstance();
         this.chatView = new ChatView();
         

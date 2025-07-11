@@ -270,8 +270,7 @@ public class PosizionamentoNaviView {
      * Passa alla griglia di attacco
      */
     private void mostraGrigliaAttacco() {
-        server.model.ServerGameManager gameManager = new server.model.ServerGameManager(10, 10);
-        GrigliaView grigliaView = new GrigliaView(gameManager);
+        GrigliaView grigliaView = new GrigliaView();
         Scene scenaGriglia = grigliaView.creaScena(primaryStage);
         primaryStage.setScene(scenaGriglia);
     }

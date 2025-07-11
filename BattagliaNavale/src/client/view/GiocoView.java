@@ -143,7 +143,8 @@ public class GiocoView extends Application {
     }
 
     @Deprecated
-    public static void setGameManager(server.model.ServerGameManager manager) {
+    public static void setGameManager(Object manager) {
         // Metodo deprecato - non più necessario con il nuovo pattern MVC
+        // Il client non deve più conoscere il ServerGameManager
     }
 }
