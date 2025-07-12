@@ -41,7 +41,8 @@ public class GiocoController {
     private Runnable onStartCallback;
     private Runnable onInizioBattagliaCallback;
     private boolean startRicevuto = false;
-    private boolean battagliaIniziata = false;
+    @SuppressWarnings("unused")
+	private boolean battagliaIniziata = false;
     
     // Thread di ascolto messaggi
     private Thread ascoltoThread;

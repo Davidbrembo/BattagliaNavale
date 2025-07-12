@@ -144,7 +144,8 @@ public class LobbyView extends Application {
     /**
      * Mostra errore di connessione
      */
-    private void mostraErroreConnessione() {
+    @SuppressWarnings("unused")
+	private void mostraErroreConnessione() {
         if (primaryStage != null) {
             Scene scenaErrore = creaScenaErroreConnessione();
             primaryStage.setScene(scenaErrore);

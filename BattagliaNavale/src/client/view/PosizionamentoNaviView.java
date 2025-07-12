@@ -574,7 +574,8 @@ public class PosizionamentoNaviView {
     /**
      * Mostra errore di connessione
      */
-    private void mostraErroreConnessione() {
+    @SuppressWarnings("unused")
+	private void mostraErroreConnessione() {
         VBox root = new VBox(20);
         root.setStyle("-fx-background-color: #1b1b1b; -fx-padding: 50px;");
         root.setAlignment(Pos.CENTER);

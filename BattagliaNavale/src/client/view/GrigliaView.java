@@ -368,14 +368,11 @@ public class GrigliaView {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("🏆 VITTORIA!");
         alert.setHeaderText("Complimenti, hai vinto!");
-        alert.setContentText(messaggio + "\n\nCosa vuoi fare adesso?");
+        alert.setContentText(messaggio + "\n\nGrazie per aver giocato!");
         
-        // Personalizza i pulsanti
-        ButtonType nuovaPartitaButton = new ButtonType("🔄 Nuova Partita");
-        ButtonType menuButton = new ButtonType("🏠 Torna al Menu");
-        ButtonType esciButton = new ButtonType("❌ Esci", ButtonBar.ButtonData.CANCEL_CLOSE);
-        
-        alert.getButtonTypes().setAll(nuovaPartitaButton, menuButton, esciButton);
+        // Solo il pulsante di chiusura
+        ButtonType chiudiButton = new ButtonType("Chiudi Gioco", ButtonBar.ButtonData.OK_DONE);
+        alert.getButtonTypes().setAll(chiudiButton);
         
         // Applica stile CSS se disponibile
         try {
@@ -387,16 +384,11 @@ public class GrigliaView {
         
         Optional<ButtonType> result = alert.showAndWait();
         
+        // Dopo aver mostrato il messaggio, chiudi l'applicazione
         result.ifPresent(buttonType -> {
-            if (buttonType == nuovaPartitaButton) {
-                // Avvia una nuova partita
-                avviaNuovaPartita();
-            } else if (buttonType == menuButton) {
-                // Torna al menu principale
-                tornaAlMenu();
-            } else if (buttonType == esciButton) {
-                // Chiudi l'applicazione
-                System.exit(0);
+            if (buttonType == chiudiButton) {
+                // Disconnetti e chiudi l'applicazione
+                disconnettiEChiudi();
             }
         });
     }
@@ -408,14 +400,11 @@ public class GrigliaView {
         Alert alert = new Alert(Alert.AlertType.WARNING);
         alert.setTitle("💀 SCONFITTA");
         alert.setHeaderText("Hai perso la battaglia...");
-        alert.setContentText(messaggio + "\n\nNon mollare! Vuoi riprovare?");
+        alert.setContentText(messaggio + "\n\nGrazie per aver giocato!");
         
-        // Personalizza i pulsanti
-        ButtonType rivincitaButton = new ButtonType("⚔️ Rivincita");
-        ButtonType menuButton = new ButtonType("🏠 Torna al Menu");
-        ButtonType esciButton = new ButtonType("❌ Esci", ButtonBar.ButtonData.CANCEL_CLOSE);
-        
-        alert.getButtonTypes().setAll(rivincitaButton, menuButton, esciButton);
+        // Solo il pulsante di chiusura
+        ButtonType chiudiButton = new ButtonType("Chiudi Gioco", ButtonBar.ButtonData.OK_DONE);
+        alert.getButtonTypes().setAll(chiudiButton);
         
         // Applica stile CSS se disponibile
         try {
@@ -427,100 +416,34 @@ public class GrigliaView {
         
         Optional<ButtonType> result = alert.showAndWait();
         
+        // Dopo aver mostrato il messaggio, chiudi l'applicazione
         result.ifPresent(buttonType -> {
-            if (buttonType == rivincitaButton) {
-                // Avvia una nuova partita
-                avviaNuovaPartita();
-            } else if (buttonType == menuButton) {
-                // Torna al menu principale
-                tornaAlMenu();
-            } else if (buttonType == esciButton) {
-                // Chiudi l'applicazione
-                System.exit(0);
+            if (buttonType == chiudiButton) {
+                // Disconnetti e chiudi l'applicazione
+                disconnettiEChiudi();
             }
         });
     }
 
     /**
-     * Avvia una nuova partita
+     * Disconnette dal server e chiude l'applicazione
      */
-    private void avviaNuovaPartita() {
+    private void disconnettiEChiudi() {
         try {
-            LogUtility.info("[GRIGLIA] Avvio nuova partita...");
+            LogUtility.info("[GRIGLIA] Disconnessione e chiusura applicazione...");
             
             // Disconnetti dal controller corrente
-            controller.disconnetti();
-            
-            // Piccola pausa per assicurarsi che la disconnessione sia completata
-            new Thread(() -> {
-                try {
-                    Thread.sleep(1000); // Aspetta 1 secondo
-                    
-                    Platform.runLater(() -> {
-                        try {
-                            SchermataInizialeView schermataIniziale = new SchermataInizialeView();
-                            Stage currentStage = (Stage) statoLabel.getScene().getWindow();
-                            schermataIniziale.start(currentStage);
-                        } catch (Exception e) {
-                            LogUtility.error("[GRIGLIA] Errore nell'avvio nuova partita: " + e.getMessage());
-                            e.printStackTrace();
-                            // Fallback al menu
-                            tornaAlMenu();
-                        }
-                    });
-                } catch (InterruptedException e) {
-                    LogUtility.warning("[GRIGLIA] Interruzione durante l'attesa: " + e.getMessage());
-                    Platform.runLater(this::tornaAlMenu);
-                }
-            }).start();
-            
+            if (controller.isConnesso()) {
+                controller.disconnetti();
+                LogUtility.info("[GRIGLIA] Disconnessione completata");
+            }
         } catch (Exception e) {
-            LogUtility.error("[GRIGLIA] Errore nella disconnessione: " + e.getMessage());
-            tornaAlMenu(); // Fallback al menu
+            LogUtility.error("[GRIGLIA] Errore durante disconnessione: " + e.getMessage());
+        } finally {
+            // Chiudi l'applicazione
+            Platform.exit();
+            System.exit(0);
         }
-    }
-
-    /**
-     * Torna al menu principale
-     */
-    private void tornaAlMenu() {
-        try {
-            LogUtility.info("[GRIGLIA] Tornando al menu principale...");
-            
-            // Disconnetti dal controller corrente
-            controller.disconnetti();
-            
-            Platform.runLater(() -> {
-                try {
-                    SchermataInizialeView schermataIniziale = new SchermataInizialeView();
-                    Stage currentStage = (Stage) statoLabel.getScene().getWindow();
-                    schermataIniziale.start(currentStage);
-                } catch (Exception e) {
-                    LogUtility.error("[GRIGLIA] Errore nel tornare al menu: " + e.getMessage());
-                    e.printStackTrace();
-                    // Come ultima risorsa, chiudi l'applicazione
-                    mostraErroreEChiudi("Errore critico nel tornare al menu. L'applicazione verrà chiusa.");
-                }
-            });
-        } catch (Exception e) {
-            LogUtility.error("[GRIGLIA] Errore nella disconnessione: " + e.getMessage());
-            mostraErroreEChiudi("Errore nella disconnessione. L'applicazione verrà chiusa.");
-        }
-    }
-
-    /**
-     * Mostra un errore critico e chiude l'applicazione
-     */
-    private void mostraErroreEChiudi(String messaggio) {
-        Platform.runLater(() -> {
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Errore Critico");
-            alert.setHeaderText("Si è verificato un errore critico");
-            alert.setContentText(messaggio);
-            
-            alert.showAndWait();
-            System.exit(1);
-        });
     }
 
     // ================== PRIVATE UTILITY METHODS ==================

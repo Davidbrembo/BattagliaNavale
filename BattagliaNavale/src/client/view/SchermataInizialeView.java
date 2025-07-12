@@ -113,7 +113,8 @@ public class SchermataInizialeView extends Application {
         root.setEffect(regolazione);
     }
 
-    private void apriGioco(Stage primaryStage) {
+    @SuppressWarnings("deprecation")
+	private void apriGioco(Stage primaryStage) {
         // Crea il ServerGameManager con righe e colonne
         int righe = 10;
         int colonne = 10;

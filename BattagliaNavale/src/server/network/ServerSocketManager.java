@@ -21,7 +21,8 @@ public class ServerSocketManager {
     private boolean[] naviPosizionate = new boolean[2]; // Traccia se i giocatori hanno posizionato le navi
     private int giocatoriPronti = 0;
     private boolean partitaFinita = false; // Nuovo flag per tracciare lo stato della partita
-    private List<NaveServer>[] naviPerGiocatore = new List[2]; // Traccia le navi per ogni giocatore
+    @SuppressWarnings("unchecked")
+	private List<NaveServer>[] naviPerGiocatore = new List[2]; // Traccia le navi per ogni giocatore
 
     public ServerSocketManager(int porta) throws IOException {
         this.serverSocket = new ServerSocket(porta);
@@ -75,7 +76,8 @@ public class ServerSocketManager {
     /**
      * Gestisce la disconnessione di un giocatore durante la partita
      */
-    public synchronized void gestisciDisconnessione(int giocatoreID) {
+    @SuppressWarnings("unused")
+	public synchronized void gestisciDisconnessione(int giocatoreID) {
         LogUtility.info("[SERVER] Gestendo disconnessione del giocatore " + giocatoreID);
         
         if (partitaFinita) {
@@ -91,7 +93,7 @@ public class ServerSocketManager {
             
             // Invia messaggio di vittoria al giocatore rimasto
             if (vincitore < clientHandlers.size() && clientHandlers.get(vincitore) != null) {
-                String nomeVincitore = clientHandlers.get(vincitore).getNomeGiocatore();
+				String nomeVincitore = clientHandlers.get(vincitore).getNomeGiocatore();
                 clientHandlers.get(vincitore).inviaMessaggio(
                     new Messaggio(Comando.VITTORIA, "Hai vinto! L'avversario si è disconnesso.")
                 );
