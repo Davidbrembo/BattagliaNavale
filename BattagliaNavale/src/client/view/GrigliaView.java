@@ -1,6 +1,9 @@
 package client.view;
 
 import client.controller.GiocoController;
+import client.view.components.NaveGraphics;
+import javafx.animation.FadeTransition;
+import javafx.animation.ScaleTransition;
 import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
@@ -9,18 +12,23 @@ import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Text;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import shared.model.Posizione;
 import shared.model.RisultatoAttacco;
+import shared.model.TipoNave;
 import utility.LogUtility;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * View responsabile solo della visualizzazione delle griglie di gioco.
- * Tutta la logica di business è delegata al Controller.
+ * View responsabile della visualizzazione delle griglie di gioco con navi grafiche realistiche.
  */
 public class GrigliaView {
 
@@ -28,10 +36,13 @@ public class GrigliaView {
     private ChatView chatView;
     
     // UI Components
-    private Rectangle[][] grigliaPropria;
-    private Rectangle[][] grigliaAvversario;
+    private StackPane[][] celleProprie;  // Cambiato da Rectangle a StackPane per contenere le navi
+    private StackPane[][] celleAvversario;
     private boolean[][] celleAttaccateAvversario;
     private Label statoLabel;
+    
+    // Gestione navi grafiche
+    private Map<Posizione, NaveGraphics> naviGrafiche = new HashMap<>();
 
     public GrigliaView() {
         this.controller = GiocoController.getInstance();
@@ -63,7 +74,7 @@ public class GrigliaView {
         // Crea la griglia propria (sinistra)
         VBox containerPropria = new VBox(10);
         containerPropria.setAlignment(Pos.CENTER);
-        Label labelPropria = new Label("La tua griglia");
+        Label labelPropria = new Label("🚢 La tua flotta");
         labelPropria.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
         GridPane gridPropria = creaGriglia(true);
         containerPropria.getChildren().addAll(labelPropria, gridPropria);
@@ -71,7 +82,7 @@ public class GrigliaView {
         // Crea la griglia avversario (destra)
         VBox containerAvversario = new VBox(10);
         containerAvversario.setAlignment(Pos.CENTER);
-        Label labelAvversario = new Label("Griglia avversario");
+        Label labelAvversario = new Label("🎯 Flotta nemica");
         labelAvversario.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
         GridPane gridAvversario = creaGriglia(false);
         containerAvversario.getChildren().addAll(labelAvversario, gridAvversario);
@@ -84,14 +95,12 @@ public class GrigliaView {
 
         Scene scena = new Scene(mainContainer, 1500, 700);
         
-        // *** NUOVO: Gestione chiusura finestra ***
+        // Gestione chiusura finestra
         primaryStage.setOnCloseRequest(event -> {
             LogUtility.info("[GRIGLIA] Richiesta chiusura finestra - disconnettendo dal server...");
             
-            // Previeni la chiusura immediata
             event.consume();
             
-            // Mostra dialog di conferma
             Alert confermaChiusura = new Alert(Alert.AlertType.CONFIRMATION);
             confermaChiusura.setTitle("Conferma Uscita");
             confermaChiusura.setHeaderText("Sei sicuro di voler uscire?");
@@ -106,7 +115,6 @@ public class GrigliaView {
             if (result.isPresent() && result.get() == esciButton) {
                 LogUtility.info("[GRIGLIA] Uscita confermata - disconnessione in corso...");
                 
-                // Disconnetti dal server prima di chiudere
                 try {
                     if (controller.isConnesso()) {
                         controller.disconnetti();
@@ -116,7 +124,6 @@ public class GrigliaView {
                     LogUtility.error("[GRIGLIA] Errore durante disconnessione: " + e.getMessage());
                 }
                 
-                // Ora chiudi l'applicazione
                 Platform.exit();
                 System.exit(0);
             } else {
@@ -126,8 +133,8 @@ public class GrigliaView {
         
         // Forza la colorazione delle navi dopo che la scena è stata creata
         Platform.runLater(() -> {
-            LogUtility.info("[GRIGLIA] Forzando colorazione navi dopo creazione scena...");
-            coloraNaviProprie();
+            LogUtility.info("[GRIGLIA] Forzando visualizzazione navi dopo creazione scena...");
+            visualizzaNaviProprie();
         });
         
         return scena;
@@ -143,37 +150,63 @@ public class GrigliaView {
 
         int righe = 10;
         int colonne = 10;
+        double cellSize = 35;
         
-        Rectangle[][] grigliaCorrente;
+        StackPane[][] grigliaCorrente;
         if (isPropria) {
-            grigliaPropria = new Rectangle[righe][colonne];
-            grigliaCorrente = grigliaPropria;
+            celleProprie = new StackPane[righe][colonne];
+            grigliaCorrente = celleProprie;
         } else {
-            grigliaAvversario = new Rectangle[righe][colonne];
+            celleAvversario = new StackPane[righe][colonne];
             celleAttaccateAvversario = new boolean[righe][colonne];
-            grigliaCorrente = grigliaAvversario;
+            grigliaCorrente = celleAvversario;
         }
 
         // Crea le celle della griglia
         for (int i = 0; i < righe; i++) {
             for (int j = 0; j < colonne; j++) {
-                Rectangle cella = new Rectangle(30, 30);
+                // Variabili final per uso nei lambda
+                final int riga = i;
+                final int colonna = j;
                 
+                StackPane cella = new StackPane();
+                cella.setPrefSize(cellSize, cellSize);
+                cella.setMaxSize(cellSize, cellSize);
+                cella.setMinSize(cellSize, cellSize);
+                
+                // Sfondo della cella (acqua)
+                Rectangle sfondo = new Rectangle(cellSize, cellSize);
                 if (isPropria) {
-                    // Griglia propria: mostra le navi
-                    cella.setFill(Color.LIGHTBLUE);
+                    sfondo.setFill(Color.LIGHTBLUE.deriveColor(0, 1, 1, 0.7));
                 } else {
-                    // Griglia avversario: inizialmente grigia (sconosciuta)
-                    cella.setFill(Color.LIGHTGRAY);
-                    
+                    sfondo.setFill(Color.LIGHTGRAY.deriveColor(0, 1, 1, 0.7));
+                }
+                sfondo.setStroke(Color.DARKBLUE);
+                sfondo.setStrokeWidth(1);
+                
+                cella.getChildren().add(sfondo);
+                
+                if (!isPropria) {
                     // Solo la griglia avversario è cliccabile per gli attacchi
-                    Posizione posizione = new Posizione(i, j);
+                    Posizione posizione = new Posizione(riga, colonna);
                     cella.setOnMouseClicked(createAttackHandler(posizione));
+                    
+                    // Effetto hover
+                    cella.setOnMouseEntered(e -> {
+                        if (controller.isMioTurno() && !celleAttaccateAvversario[riga][colonna]) {
+                            sfondo.setFill(Color.YELLOW.deriveColor(0, 1, 1, 0.5));
+                        }
+                    });
+                    
+                    cella.setOnMouseExited(e -> {
+                        if (!celleAttaccateAvversario[riga][colonna]) {
+                            sfondo.setFill(Color.LIGHTGRAY.deriveColor(0, 1, 1, 0.7));
+                        }
+                    });
                 }
 
-                cella.setStroke(Color.BLACK);
-                grigliaCorrente[i][j] = cella;
-                grid.add(cella, j, i);
+                grigliaCorrente[riga][colonna] = cella;
+                grid.add(cella, colonna, riga);
             }
         }
 
@@ -204,33 +237,84 @@ public class GrigliaView {
     // ================== PUBLIC INTERFACE - Chiamate dal Controller ==================
 
     /**
-     * Metodo pubblico per colorare le navi (chiamato dal Controller)
+     * Visualizza le navi proprie con grafica realistica
      */
-    public void coloraNaviProprie() {
+    public void visualizzaNaviProprie() {
         Platform.runLater(() -> {
-            LogUtility.info("[GRIGLIA] Tentativo di colorazione navi...");
+            LogUtility.info("[GRIGLIA] Tentativo di visualizzazione navi...");
             List<List<Posizione>> mieNavi = controller.getMieNavi();
             
             if (mieNavi != null && !mieNavi.isEmpty()) {
-                LogUtility.info("[GRIGLIA] Colorando " + mieNavi.size() + " navi nella griglia propria");
+                LogUtility.info("[GRIGLIA] Visualizzando " + mieNavi.size() + " navi nella griglia propria");
+                
+                // Pulisci navi precedenti
+                naviGrafiche.clear();
                 
                 for (int i = 0; i < mieNavi.size(); i++) {
-                    List<Posizione> nave = mieNavi.get(i);
-                    Color coloreNave = getColoreNavePerLunghezza(nave.size());
+                    List<Posizione> posizioniNave = mieNavi.get(i);
+                    TipoNave tipoNave = determinaTipoNave(posizioniNave.size());
                     
-                    for (Posizione pos : nave) {
-                        if (pos.getRiga() < 10 && pos.getColonna() < 10) {
-                            grigliaPropria[pos.getRiga()][pos.getColonna()].setFill(coloreNave);
-                            LogUtility.info("[GRIGLIA] Colorata cella (" + pos.getRiga() + "," + pos.getColonna() + ")");
-                        }
-                    }
+                    // Determina orientamento
+                    boolean orizzontale = posizioniNave.size() > 1 && 
+                        posizioniNave.get(0).getRiga() == posizioniNave.get(1).getRiga();
                     
-                    LogUtility.info("[GRIGLIA] Colorata nave " + (i+1) + " di lunghezza " + nave.size());
+                    // Crea e posiziona la nave grafica
+                    visualizzaNave(posizioniNave, tipoNave, orizzontale);
+                    
+                    LogUtility.info("[GRIGLIA] Visualizzata " + tipoNave.getNome() + 
+                                   " (lunghezza " + posizioniNave.size() + ") " + 
+                                   (orizzontale ? "orizzontale" : "verticale"));
                 }
             } else {
-                LogUtility.warning("[GRIGLIA] Nessuna nave trovata per la colorazione - getMieNavi() = " + mieNavi);
+                LogUtility.warning("[GRIGLIA] Nessuna nave trovata per la visualizzazione");
             }
         });
+    }
+    
+    private void visualizzaNave(List<Posizione> posizioni, TipoNave tipo, boolean orizzontale) {
+        if (posizioni.isEmpty()) return;
+        
+        // Per navi multi-cella, crea una nave che si estende su più celle
+        if (posizioni.size() == 1) {
+            // Nave singola cella (non dovrebbe accadere, ma gestiamo il caso)
+            Posizione pos = posizioni.get(0);
+            NaveGraphics nave = new NaveGraphics(tipo, true, 35);
+            celleProprie[pos.getRiga()][pos.getColonna()].getChildren().add(nave);
+            naviGrafiche.put(pos, nave);
+        } else {
+            // Nave multi-cella: crea segmenti collegati
+            for (int i = 0; i < posizioni.size(); i++) {
+                Posizione pos = posizioni.get(i);
+                
+                // Crea un segmento della nave
+                NaveGraphics segmento = new NaveGraphics(tipo, orizzontale, 35);
+                
+                // Modifica il segmento per mostrare la continuità
+                if (i == 0) {
+                    // Primo segmento (prua)
+                    segmento.setId("prua");
+                } else if (i == posizioni.size() - 1) {
+                    // Ultimo segmento (poppa)
+                    segmento.setId("poppa");
+                } else {
+                    // Segmento centrale
+                    segmento.setId("centro");
+                }
+                
+                celleProprie[pos.getRiga()][pos.getColonna()].getChildren().add(segmento);
+                naviGrafiche.put(pos, segmento);
+            }
+        }
+    }
+    
+    private TipoNave determinaTipoNave(int lunghezza) {
+        return switch (lunghezza) {
+            case 5 -> TipoNave.PORTAEREI;
+            case 4 -> TipoNave.INCROCIATORE;
+            case 3 -> TipoNave.CACCIATORPEDINIERE;
+            case 2 -> TipoNave.SOTTOMARINO;
+            default -> TipoNave.SOTTOMARINO; // Fallback
+        };
     }
 
     /**
@@ -257,9 +341,9 @@ public class GrigliaView {
      */
     public void attivaGrigliaAvversario(boolean attiva) {
         Platform.runLater(() -> {
-            for (int i = 0; i < grigliaAvversario.length; i++) {
-                for (int j = 0; j < grigliaAvversario[i].length; j++) {
-                    Rectangle cella = grigliaAvversario[i][j];
+            for (int i = 0; i < celleAvversario.length; i++) {
+                for (int j = 0; j < celleAvversario[i].length; j++) {
+                    StackPane cella = celleAvversario[i][j];
                     if (attiva && !celleAttaccateAvversario[i][j]) {
                         // Riattiva solo le celle non ancora attaccate
                         Posizione pos = new Posizione(i, j);
@@ -281,19 +365,28 @@ public class GrigliaView {
     public void aggiornaCellaAvversario(RisultatoAttacco risultato) {
         Platform.runLater(() -> {
             Posizione pos = risultato.getPosizione();
-            Rectangle cella = grigliaAvversario[pos.getRiga()][pos.getColonna()];
+            StackPane cella = celleAvversario[pos.getRiga()][pos.getColonna()];
             
             // Marca la cella come attaccata
             celleAttaccateAvversario[pos.getRiga()][pos.getColonna()] = true;
             
+            // Ottieni il rectangle di sfondo (primo child)
+            Rectangle sfondo = (Rectangle) cella.getChildren().get(0);
+            
             if (risultato.isColpito()) {
                 if (risultato.isNaveAffondata()) {
-                    cella.setFill(Color.DARKRED); // Nave affondata
+                    // Nave affondata - mostra esplosione e affondamento
+                    sfondo.setFill(Color.DARKRED);
+                    aggiungiEffettoAffondamento(cella);
                 } else {
-                    cella.setFill(Color.RED); // Colpito
+                    // Colpito - mostra esplosione
+                    sfondo.setFill(Color.RED);
+                    aggiungiEffettoColpo(cella);
                 }
             } else {
-                cella.setFill(Color.BLUE); // Mancato (acqua)
+                // Mancato - mostra splash d'acqua
+                sfondo.setFill(Color.DARKBLUE);
+                aggiungiEffettoSplash(cella);
             }
             
             // Disabilita il click su questa cella
@@ -307,18 +400,81 @@ public class GrigliaView {
     public void aggiornaCellaPropria(RisultatoAttacco risultato) {
         Platform.runLater(() -> {
             Posizione pos = risultato.getPosizione();
-            Rectangle cella = grigliaPropria[pos.getRiga()][pos.getColonna()];
+            StackPane cella = celleProprie[pos.getRiga()][pos.getColonna()];
             
             if (risultato.isColpito()) {
+                // Trova la nave grafica in questa posizione
+                NaveGraphics nave = naviGrafiche.get(pos);
+                if (nave != null) {
+                    if (risultato.isNaveAffondata()) {
+                        // Nave affondata
+                        nave.mostraAffondata();
+                    } else {
+                        // Nave colpita
+                        nave.mostraColpita();
+                    }
+                }
+                
+                // Aggiorna anche lo sfondo
+                Rectangle sfondo = (Rectangle) cella.getChildren().get(0);
                 if (risultato.isNaveAffondata()) {
-                    cella.setFill(Color.DARKRED); // La mia nave è affondata
+                    sfondo.setFill(Color.DARKRED.deriveColor(0, 1, 1, 0.5));
                 } else {
-                    cella.setFill(Color.ORANGE); // La mia nave è stata colpita
+                    sfondo.setFill(Color.ORANGE.deriveColor(0, 1, 1, 0.5));
                 }
             } else {
-                cella.setFill(Color.CYAN); // Attacco mancato sulla mia griglia
+                // Attacco mancato sulla mia griglia
+                Rectangle sfondo = (Rectangle) cella.getChildren().get(0);
+                sfondo.setFill(Color.CYAN.deriveColor(0, 1, 1, 0.3));
+                aggiungiEffettoSplash(cella);
             }
         });
+    }
+
+    // ================== EFFETTI VISIVI ==================
+    
+    private void aggiungiEffettoColpo(StackPane cella) {
+        // Effetto esplosione per colpo
+        Circle esplosione = new Circle(8);
+        esplosione.setFill(Color.YELLOW);
+        esplosione.setStroke(Color.RED);
+        esplosione.setStrokeWidth(2);
+        cella.getChildren().add(esplosione);
+        
+        // Animazione dell'esplosione
+        ScaleTransition scale = new ScaleTransition(Duration.millis(300), esplosione);
+        scale.setFromX(0.1);
+        scale.setFromY(0.1);
+        scale.setToX(1.0);
+        scale.setToY(1.0);
+        scale.play();
+    }
+    
+    private void aggiungiEffettoAffondamento(StackPane cella) {
+        // Effetto per nave affondata
+        aggiungiEffettoColpo(cella); // Prima l'esplosione
+        
+        // Poi aggiungi simbolo affondamento
+        Platform.runLater(() -> {
+            Text simbolo = new Text("💀");
+            simbolo.setStyle("-fx-font-size: 16px;");
+            cella.getChildren().add(simbolo);
+        });
+    }
+    
+    private void aggiungiEffettoSplash(StackPane cella) {
+        // Effetto splash per attacco mancato
+        Circle splash = new Circle(6);
+        splash.setFill(Color.LIGHTBLUE);
+        splash.setStroke(Color.BLUE);
+        splash.setStrokeWidth(1);
+        cella.getChildren().add(splash);
+        
+        // Animazione fade out
+        FadeTransition fade = new FadeTransition(Duration.millis(500), splash);
+        fade.setFromValue(1.0);
+        fade.setToValue(0.3);
+        fade.play();
     }
 
     /**
@@ -330,7 +486,7 @@ public class GrigliaView {
             statoLabel.setStyle("-fx-text-fill: gold; -fx-font-size: 20px; -fx-font-weight: bold;");
             disabilitaGriglia();
             
-            // Mostra un popup di vittoria più elaborato
+            // Mostra un popup di vittoria
             mostraPopupVittoria(messaggio);
         });
     }
@@ -344,7 +500,7 @@ public class GrigliaView {
             statoLabel.setStyle("-fx-text-fill: red; -fx-font-size: 20px; -fx-font-weight: bold;");
             disabilitaGriglia();
             
-            // Mostra un popup di sconfitta più elaborato
+            // Mostra un popup di sconfitta
             mostraPopupSconfitta(messaggio);
         });
     }
@@ -361,20 +517,15 @@ public class GrigliaView {
 
     // ================== POPUP METHODS ==================
 
-    /**
-     * Mostra un popup di vittoria con opzioni
-     */
     private void mostraPopupVittoria(String messaggio) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("🏆 VITTORIA!");
         alert.setHeaderText("Complimenti, hai vinto!");
         alert.setContentText(messaggio + "\n\nGrazie per aver giocato!");
         
-        // Solo il pulsante di chiusura
         ButtonType chiudiButton = new ButtonType("Chiudi Gioco", ButtonBar.ButtonData.OK_DONE);
         alert.getButtonTypes().setAll(chiudiButton);
         
-        // Applica stile CSS se disponibile
         try {
             alert.getDialogPane().getStylesheets().add(getClass().getResource("/warstyle.css").toExternalForm());
             alert.getDialogPane().getStyleClass().add("victory-dialog");
@@ -384,29 +535,22 @@ public class GrigliaView {
         
         Optional<ButtonType> result = alert.showAndWait();
         
-        // Dopo aver mostrato il messaggio, chiudi l'applicazione
         result.ifPresent(buttonType -> {
             if (buttonType == chiudiButton) {
-                // Disconnetti e chiudi l'applicazione
                 disconnettiEChiudi();
             }
         });
     }
 
-    /**
-     * Mostra un popup di sconfitta con opzioni
-     */
     private void mostraPopupSconfitta(String messaggio) {
         Alert alert = new Alert(Alert.AlertType.WARNING);
         alert.setTitle("💀 SCONFITTA");
         alert.setHeaderText("Hai perso la battaglia...");
         alert.setContentText(messaggio + "\n\nGrazie per aver giocato!");
         
-        // Solo il pulsante di chiusura
         ButtonType chiudiButton = new ButtonType("Chiudi Gioco", ButtonBar.ButtonData.OK_DONE);
         alert.getButtonTypes().setAll(chiudiButton);
         
-        // Applica stile CSS se disponibile
         try {
             alert.getDialogPane().getStylesheets().add(getClass().getResource("/warstyle.css").toExternalForm());
             alert.getDialogPane().getStyleClass().add("defeat-dialog");
@@ -416,23 +560,17 @@ public class GrigliaView {
         
         Optional<ButtonType> result = alert.showAndWait();
         
-        // Dopo aver mostrato il messaggio, chiudi l'applicazione
         result.ifPresent(buttonType -> {
             if (buttonType == chiudiButton) {
-                // Disconnetti e chiudi l'applicazione
                 disconnettiEChiudi();
             }
         });
     }
 
-    /**
-     * Disconnette dal server e chiude l'applicazione
-     */
     private void disconnettiEChiudi() {
         try {
             LogUtility.info("[GRIGLIA] Disconnessione e chiusura applicazione...");
             
-            // Disconnetti dal controller corrente
             if (controller.isConnesso()) {
                 controller.disconnetti();
                 LogUtility.info("[GRIGLIA] Disconnessione completata");
@@ -440,7 +578,6 @@ public class GrigliaView {
         } catch (Exception e) {
             LogUtility.error("[GRIGLIA] Errore durante disconnessione: " + e.getMessage());
         } finally {
-            // Chiudi l'applicazione
             Platform.exit();
             System.exit(0);
         }
@@ -448,48 +585,31 @@ public class GrigliaView {
 
     // ================== PRIVATE UTILITY METHODS ==================
 
-    /**
-     * Disabilita completamente la griglia quando la partita è finita
-     */
     private void disabilitaGriglia() {
-        for (int i = 0; i < grigliaAvversario.length; i++) {
-            for (int j = 0; j < grigliaAvversario[i].length; j++) {
-                grigliaAvversario[i][j].setOnMouseClicked(null);
-                grigliaAvversario[i][j].setOpacity(0.5);
+        for (int i = 0; i < celleAvversario.length; i++) {
+            for (int j = 0; j < celleAvversario[i].length; j++) {
+                celleAvversario[i][j].setOnMouseClicked(null);
+                celleAvversario[i][j].setOpacity(0.5);
             }
         }
     }
 
-    /**
-     * Restituisce il colore della nave basato sulla sua lunghezza
-     */
-    private Color getColoreNavePerLunghezza(int lunghezza) {
-        return switch (lunghezza) {
-            case 5 -> Color.DARKRED;     // Portaerei
-            case 4 -> Color.DARKBLUE;    // Incrociatore
-            case 3 -> Color.DARKGREEN;   // Cacciatorpediniere
-            case 2 -> Color.DARKORANGE;  // Sottomarino
-            default -> Color.GRAY;       // Fallback
-        };
-    }
-
-    // ================== GETTERS ==================
+    // ================== GETTERS E METODI LEGACY ==================
 
     public ChatView getChatView() {
         return chatView;
     }
 
-    /**
-     * Verifica se la griglia è stata inizializzata correttamente
-     */
+    // Metodo di compatibilità per non rompere codice esistente
+    public void coloraNaviProprie() {
+        visualizzaNaviProprie();
+    }
+
     public boolean isInizializzata() {
-        return grigliaPropria != null && grigliaAvversario != null && 
+        return celleProprie != null && celleAvversario != null && 
                celleAttaccateAvversario != null && statoLabel != null;
     }
 
-    /**
-     * Restituisce lo stato corrente della griglia avversario per debug
-     */
     public String getStatoGrigliaAvversario() {
         if (celleAttaccateAvversario == null) return "Non inizializzata";
         
@@ -504,34 +624,46 @@ public class GrigliaView {
         return "Celle attaccate: " + celleAttaccate + "/100";
     }
 
-    /**
-     * Reset della griglia per debug/testing
-     */
     public void resetGriglia() {
         Platform.runLater(() -> {
             LogUtility.info("[GRIGLIA] Reset griglia in corso...");
             
             // Reset griglia avversario
-            if (grigliaAvversario != null && celleAttaccateAvversario != null) {
+            if (celleAvversario != null && celleAttaccateAvversario != null) {
                 for (int i = 0; i < 10; i++) {
                     for (int j = 0; j < 10; j++) {
-                        grigliaAvversario[i][j].setFill(Color.LIGHTGRAY);
-                        grigliaAvversario[i][j].setOpacity(1.0);
-                        grigliaAvversario[i][j].setOnMouseClicked(null);
+                        StackPane cella = celleAvversario[i][j];
+                        // Pulisci tutti i children tranne il primo (sfondo)
+                        if (cella.getChildren().size() > 1) {
+                            cella.getChildren().subList(1, cella.getChildren().size()).clear();
+                        }
+                        Rectangle sfondo = (Rectangle) cella.getChildren().get(0);
+                        sfondo.setFill(Color.LIGHTGRAY.deriveColor(0, 1, 1, 0.7));
+                        cella.setOpacity(1.0);
+                        cella.setOnMouseClicked(null);
                         celleAttaccateAvversario[i][j] = false;
                     }
                 }
             }
             
             // Reset griglia propria
-            if (grigliaPropria != null) {
+            if (celleProprie != null) {
                 for (int i = 0; i < 10; i++) {
                     for (int j = 0; j < 10; j++) {
-                        grigliaPropria[i][j].setFill(Color.LIGHTBLUE);
-                        grigliaPropria[i][j].setOpacity(1.0);
+                        StackPane cella = celleProprie[i][j];
+                        // Pulisci tutto tranne il sfondo
+                        if (cella.getChildren().size() > 1) {
+                            cella.getChildren().subList(1, cella.getChildren().size()).clear();
+                        }
+                        Rectangle sfondo = (Rectangle) cella.getChildren().get(0);
+                        sfondo.setFill(Color.LIGHTBLUE.deriveColor(0, 1, 1, 0.7));
+                        cella.setOpacity(1.0);
                     }
                 }
             }
+            
+            // Reset navi grafiche
+            naviGrafiche.clear();
             
             // Reset stato
             if (statoLabel != null) {

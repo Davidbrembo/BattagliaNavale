@@ -1,6 +1,7 @@
 package client.view;
 
 import client.controller.GiocoController;
+import client.view.components.NaveGraphics;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -18,19 +19,22 @@ import utility.LogUtility;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * View per il posizionamento delle navi.
+ * View per il posizionamento delle navi con grafica realistica.
  * Segue il pattern MVC delegando la logica al Controller.
  */
 public class PosizionamentoNaviView {
 
-    private Rectangle[][] celle;
+    private StackPane[][] celle; // Cambiato da Rectangle a StackPane per contenere le navi
     private Label statoLabel;
     private Label naviRimanentiLabel;
     private Button confermaButton;
     private List<List<Posizione>> naviPosizionate = new ArrayList<>();
     private List<Posizione> naviOccupate = new ArrayList<>();
+    private Map<Posizione, NaveGraphics> naviGrafiche = new HashMap<>();
     
     // Gestione navi multiple
     private TipoNave[] naviDaPosizionare;
@@ -115,14 +119,12 @@ public class PosizionamentoNaviView {
         Scene scena = new Scene(root, 1100, 900);
         scena.getStylesheets().add(getClass().getResource("/warstyle.css").toExternalForm());
         
-        // *** NUOVO: Gestione chiusura finestra ***
+        // Gestione chiusura finestra
         primaryStage.setOnCloseRequest(event -> {
             LogUtility.info("[POSIZIONAMENTO] Richiesta chiusura finestra - disconnettendo dal server...");
             
-            // Previeni la chiusura immediata
             event.consume();
             
-            // Mostra dialog di conferma
             Alert confermaChiusura = new Alert(Alert.AlertType.CONFIRMATION);
             confermaChiusura.setTitle("Conferma Uscita");
             confermaChiusura.setHeaderText("Sei sicuro di voler uscire?");
@@ -137,7 +139,6 @@ public class PosizionamentoNaviView {
             if (result.isPresent() && result.get() == esciButton) {
                 LogUtility.info("[POSIZIONAMENTO] Uscita confermata - disconnessione in corso...");
                 
-                // Disconnetti dal server prima di chiudere
                 try {
                     if (controller.isConnesso()) {
                         controller.disconnetti();
@@ -147,7 +148,6 @@ public class PosizionamentoNaviView {
                     LogUtility.error("[POSIZIONAMENTO] Errore durante disconnessione: " + e.getMessage());
                 }
                 
-                // Ora chiudi l'applicazione
                 Platform.exit();
                 System.exit(0);
             } else {
@@ -223,18 +223,28 @@ public class PosizionamentoNaviView {
 
         int righe = 10;
         int colonne = 10;
-        celle = new Rectangle[righe][colonne];
+        double cellSize = 35;
+        celle = new StackPane[righe][colonne];
 
         // Crea le celle della griglia
         for (int i = 0; i < righe; i++) {
             for (int j = 0; j < colonne; j++) {
-                Rectangle cella = new Rectangle(35, 35);
-                cella.setFill(Color.LIGHTBLUE);
-                cella.setStroke(Color.BLACK);
-                cella.setStrokeWidth(1);
-
+                // Variabili final per uso nei lambda
                 final int riga = i;
                 final int colonna = j;
+                
+                StackPane cella = new StackPane();
+                cella.setPrefSize(cellSize, cellSize);
+                cella.setMaxSize(cellSize, cellSize);
+                cella.setMinSize(cellSize, cellSize);
+                
+                // Sfondo della cella (acqua)
+                Rectangle sfondo = new Rectangle(cellSize, cellSize);
+                sfondo.setFill(Color.LIGHTBLUE.deriveColor(0, 1, 1, 0.8));
+                sfondo.setStroke(Color.BLACK);
+                sfondo.setStrokeWidth(1);
+                
+                cella.getChildren().add(sfondo);
 
                 // Gestione click del mouse
                 cella.setOnMouseClicked(event -> {
@@ -254,8 +264,8 @@ public class PosizionamentoNaviView {
                     if (indiceNaveCorrente < naviDaPosizionare.length && 
                         !naviOccupate.contains(new Posizione(riga, colonna))) {
                         
-                        // Mostra preview della nave
-                        mostraPreviewNave(riga, colonna, true); // Default orizzontale
+                        // Mostra preview della nave (default orizzontale)
+                        mostraPreviewNave(riga, colonna, true);
                     }
                 });
 
@@ -263,8 +273,8 @@ public class PosizionamentoNaviView {
                     rimuoviPreview();
                 });
 
-                celle[i][j] = cella;
-                grid.add(cella, j, i);
+                celle[riga][colonna] = cella;
+                grid.add(cella, colonna, riga);
             }
         }
 
@@ -281,11 +291,14 @@ public class PosizionamentoNaviView {
             int nuovaColonna = orizzontale ? colonna + i : colonna;
             
             if (nuovaRiga < 10 && nuovaColonna < 10) {
+                StackPane cella = celle[nuovaRiga][nuovaColonna];
+                Rectangle sfondo = (Rectangle) cella.getChildren().get(0);
+                
                 Posizione pos = new Posizione(nuovaRiga, nuovaColonna);
                 if (!naviOccupate.contains(pos)) {
-                    celle[nuovaRiga][nuovaColonna].setFill(Color.LIGHTYELLOW);
+                    sfondo.setFill(Color.LIGHTYELLOW);
                 } else {
-                    celle[nuovaRiga][nuovaColonna].setFill(Color.LIGHTCORAL); // Conflitto
+                    sfondo.setFill(Color.LIGHTCORAL); // Conflitto
                 }
             }
         }
@@ -296,7 +309,9 @@ public class PosizionamentoNaviView {
             for (int j = 0; j < 10; j++) {
                 Posizione pos = new Posizione(i, j);
                 if (!naviOccupate.contains(pos)) {
-                    celle[i][j].setFill(Color.LIGHTBLUE);
+                    StackPane cella = celle[i][j];
+                    Rectangle sfondo = (Rectangle) cella.getChildren().get(0);
+                    sfondo.setFill(Color.LIGHTBLUE.deriveColor(0, 1, 1, 0.8));
                 }
             }
         }
@@ -332,13 +347,8 @@ public class PosizionamentoNaviView {
         naviPosizionate.add(posizioniNave);
         naviOccupate.addAll(posizioniNave);
         
-        // Colora le celle della nave con colori diversi per tipo
-        Color coloreNave = getColoreNave(naveCorrente);
-        for (Posizione pos : posizioniNave) {
-            Rectangle cella = celle[pos.getRiga()][pos.getColonna()];
-            cella.setFill(coloreNave);
-            LogUtility.info("[POSIZIONAMENTO] Colorando cella (" + pos.getRiga() + "," + pos.getColonna() + ") con colore: " + coloreNave);
-        }
+        // Visualizza la nave grafica invece dei rettangoli colorati
+        visualizzaNaveGrafica(posizioniNave, naveCorrente, orizzontale);
         
         // Passa alla nave successiva
         indiceNaveCorrente++;
@@ -354,6 +364,37 @@ public class PosizionamentoNaviView {
         
         // Aggiorna la lista navi
         aggiornaListaNavi();
+    }
+
+    private void visualizzaNaveGrafica(List<Posizione> posizioni, TipoNave tipo, boolean orizzontale) {
+        // Per ogni posizione della nave, aggiungi la grafica
+        for (int i = 0; i < posizioni.size(); i++) {
+            Posizione pos = posizioni.get(i);
+            StackPane cella = celle[pos.getRiga()][pos.getColonna()];
+            
+            // Crea la nave grafica
+            NaveGraphics naveGraph = new NaveGraphics(tipo, orizzontale, 35);
+            
+            // Aggiungi identificatore per il segmento
+            if (posizioni.size() > 1) {
+                if (i == 0) {
+                    naveGraph.setId("prua");
+                } else if (i == posizioni.size() - 1) {
+                    naveGraph.setId("poppa");
+                } else {
+                    naveGraph.setId("centro");
+                }
+            }
+            
+            // Aggiungi la nave alla cella (sopra lo sfondo)
+            cella.getChildren().add(naveGraph);
+            
+            // Salva il riferimento per eventuali reset
+            naviGrafiche.put(pos, naveGraph);
+            
+            LogUtility.info("[POSIZIONAMENTO] Visualizzata nave grafica " + tipo.getNome() + 
+                           " in (" + pos.getRiga() + "," + pos.getColonna() + ")");
+        }
     }
 
     private void aggiornaListaNavi() {
@@ -397,15 +438,6 @@ public class PosizionamentoNaviView {
         LogUtility.info("[POSIZIONAMENTO] Lista navi aggiornata - Indice corrente: " + indiceNaveCorrente);
     }
 
-    private Color getColoreNave(TipoNave tipo) {
-        return switch (tipo) {
-            case PORTAEREI -> Color.DARKRED;
-            case INCROCIATORE -> Color.DARKBLUE; 
-            case CACCIATORPEDINIERE -> Color.DARKGREEN;
-            case SOTTOMARINO -> Color.DARKORANGE;
-        };
-    }
-
     private void aggiornaStatoNavi() {
         int totaleNavi = TipoNave.getNumeroTotaleNavi();
         int naviPosizionateCount = indiceNaveCorrente;
@@ -434,13 +466,21 @@ public class PosizionamentoNaviView {
         // Reset completo
         naviPosizionate.clear();
         naviOccupate.clear();
+        naviGrafiche.clear();
         indiceNaveCorrente = 0;
         naveCorrente = naviDaPosizionare[0];
         
-        // Reset delle celle
+        // Reset delle celle - rimuovi tutte le navi grafiche
         for (int i = 0; i < 10; i++) {
             for (int j = 0; j < 10; j++) {
-                celle[i][j].setFill(Color.LIGHTBLUE);
+                StackPane cella = celle[i][j];
+                // Mantieni solo lo sfondo (primo child)
+                if (cella.getChildren().size() > 1) {
+                    cella.getChildren().subList(1, cella.getChildren().size()).clear();
+                }
+                // Ripristina colore sfondo
+                Rectangle sfondo = (Rectangle) cella.getChildren().get(0);
+                sfondo.setFill(Color.LIGHTBLUE.deriveColor(0, 1, 1, 0.8));
             }
         }
         
@@ -458,9 +498,19 @@ public class PosizionamentoNaviView {
             List<Posizione> ultimaNave = naviPosizionate.remove(naviPosizionate.size() - 1);
             naviOccupate.removeAll(ultimaNave);
             
-            // Ricolora le celle
+            // Rimuovi le navi grafiche
             for (Posizione pos : ultimaNave) {
-                celle[pos.getRiga()][pos.getColonna()].setFill(Color.LIGHTBLUE);
+                StackPane cella = celle[pos.getRiga()][pos.getColonna()];
+                // Rimuovi la nave grafica (mantieni solo lo sfondo)
+                if (cella.getChildren().size() > 1) {
+                    cella.getChildren().subList(1, cella.getChildren().size()).clear();
+                }
+                // Ripristina colore sfondo
+                Rectangle sfondo = (Rectangle) cella.getChildren().get(0);
+                sfondo.setFill(Color.LIGHTBLUE.deriveColor(0, 1, 1, 0.8));
+                
+                // Rimuovi dal tracking delle navi grafiche
+                naviGrafiche.remove(pos);
             }
             
             naveCorrente = naviDaPosizionare[indiceNaveCorrente];
@@ -549,7 +599,7 @@ public class PosizionamentoNaviView {
         });
         
         primaryStage.setScene(scene);
-
+        
         // Avvia l'ascolto per l'inizio battaglia
         avviaAscoltoInizioBattaglia();
     }
@@ -574,8 +624,7 @@ public class PosizionamentoNaviView {
     /**
      * Mostra errore di connessione
      */
-    @SuppressWarnings("unused")
-	private void mostraErroreConnessione() {
+    private void mostraErroreConnessione() {
         VBox root = new VBox(20);
         root.setStyle("-fx-background-color: #1b1b1b; -fx-padding: 50px;");
         root.setAlignment(Pos.CENTER);
@@ -604,6 +653,9 @@ public class PosizionamentoNaviView {
         primaryStage.setScene(scene);
     }
 
+    /**
+     * Mostra un errore in un popup
+     */
     private void mostraErrore(String messaggio) {
         Alert alert = new Alert(AlertType.WARNING);
         alert.setTitle("Errore Posizionamento");
