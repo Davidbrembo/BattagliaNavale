@@ -7,7 +7,7 @@ import shared.model.TipoNave;
 
 /**
  * Componente grafico per rappresentare le navi come forme realistiche
- * invece dei semplici quadratini colorati
+ * VERSIONE ORIGINALE FUNZIONANTE
  */
 public class NaveGraphics extends Group {
     
@@ -26,14 +26,23 @@ public class NaveGraphics extends Group {
     }
     
     private void creaNave() {
-        // Calcola dimensioni
-        double larghezza = orizzontale ? lunghezza * cellSize * 0.9 : cellSize * 0.6;
-        double altezza = orizzontale ? cellSize * 0.6 : lunghezza * cellSize * 0.9;
+        // Dimensioni conservative per rimanere entro i confini
+        double margine = cellSize * 0.1;
+        double larghezza = orizzontale ? (cellSize - margine * 2) : (cellSize * 0.7);
+        double altezza = orizzontale ? (cellSize * 0.7) : (cellSize - margine * 2);
+        
+        // Centra la nave nella cella
+        double offsetX = orizzontale ? margine : (cellSize - larghezza) / 2;
+        double offsetY = orizzontale ? (cellSize - altezza) / 2 : margine;
         
         // Colori base per tipo di nave
         Color coloreBase = getColoreBase();
         Color coloreScuro = coloreBase.deriveColor(0, 1, 0.7, 1);
         Color coloreChiaro = coloreBase.deriveColor(0, 1, 1.3, 1);
+        
+        // Applica l'offset per centrare la nave
+        setTranslateX(-cellSize/2 + offsetX);
+        setTranslateY(-cellSize/2 + offsetY);
         
         switch (tipo) {
             case PORTAEREI -> creaPortaerei(larghezza, altezza, coloreBase, coloreScuro, coloreChiaro);
@@ -49,8 +58,8 @@ public class NaveGraphics extends Group {
         corpo.setFill(base);
         corpo.setStroke(scuro);
         corpo.setStrokeWidth(1);
-        corpo.setArcWidth(8);
-        corpo.setArcHeight(8);
+        corpo.setArcWidth(4);
+        corpo.setArcHeight(4);
         
         // Ponte di comando (struttura centrale)
         double ponteLarg = orizzontale ? larghezza * 0.3 : larghezza * 0.8;
@@ -62,40 +71,13 @@ public class NaveGraphics extends Group {
         ponte.setX(orizzontale ? larghezza * 0.35 : larghezza * 0.1);
         ponte.setY(orizzontale ? altezza * 0.1 : altezza * 0.35);
         
-        // Pista di decollo (linee)
-        for (int i = 1; i < lunghezza; i++) {
-            Line linea = new Line();
-            if (orizzontale) {
-                linea.setStartX(i * cellSize * 0.9 / lunghezza);
-                linea.setEndX(i * cellSize * 0.9 / lunghezza);
-                linea.setStartY(2);
-                linea.setEndY(altezza - 2);
-            } else {
-                linea.setStartX(2);
-                linea.setEndX(larghezza - 2);
-                linea.setStartY(i * cellSize * 0.9 / lunghezza);
-                linea.setEndY(i * cellSize * 0.9 / lunghezza);
-            }
-            linea.setStroke(scuro);
-            linea.setStrokeWidth(0.5);
-            getChildren().add(linea);
-        }
-        
         // Antenne (piccoli cerchi)
-        for (int i = 0; i < 3; i++) {
-            Circle antenna = new Circle(1.5);
-            antenna.setFill(Color.GRAY);
-            if (orizzontale) {
-                antenna.setCenterX(larghezza * 0.2 + i * larghezza * 0.3);
-                antenna.setCenterY(altezza * 0.5);
-            } else {
-                antenna.setCenterX(larghezza * 0.5);
-                antenna.setCenterY(altezza * 0.2 + i * altezza * 0.3);
-            }
-            getChildren().add(antenna);
-        }
+        Circle antenna = new Circle(1.5);
+        antenna.setFill(Color.GRAY);
+        antenna.setCenterX(larghezza * 0.5);
+        antenna.setCenterY(altezza * 0.5);
         
-        getChildren().addAll(corpo, ponte);
+        getChildren().addAll(corpo, ponte, antenna);
     }
     
     private void creaIncrociatore(double larghezza, double altezza, Color base, Color scuro, Color chiaro) {
@@ -104,43 +86,32 @@ public class NaveGraphics extends Group {
         corpo.setFill(base);
         corpo.setStroke(scuro);
         corpo.setStrokeWidth(1);
-        corpo.setArcWidth(6);
-        corpo.setArcHeight(6);
+        corpo.setArcWidth(3);
+        corpo.setArcHeight(3);
         
-        // Torrette (cerchi)
-        int numTorrette = 3;
-        for (int i = 0; i < numTorrette; i++) {
-            Circle torretta = new Circle(cellSize * 0.15);
-            torretta.setFill(scuro);
-            torretta.setStroke(Color.BLACK);
-            torretta.setStrokeWidth(0.5);
-            
-            if (orizzontale) {
-                torretta.setCenterX(larghezza * 0.15 + i * larghezza * 0.35);
-                torretta.setCenterY(altezza * 0.5);
-            } else {
-                torretta.setCenterX(larghezza * 0.5);
-                torretta.setCenterY(altezza * 0.15 + i * altezza * 0.35);
-            }
-            getChildren().add(torretta);
-            
-            // Cannoni (piccole linee)
-            Line cannone = new Line();
-            if (orizzontale) {
-                cannone.setStartX(torretta.getCenterX());
-                cannone.setEndX(torretta.getCenterX() + cellSize * 0.1);
-                cannone.setStartY(torretta.getCenterY());
-                cannone.setEndY(torretta.getCenterY());
-            } else {
-                cannone.setStartX(torretta.getCenterX());
-                cannone.setEndX(torretta.getCenterX());
-                cannone.setStartY(torretta.getCenterY());
-                cannone.setEndY(torretta.getCenterY() + cellSize * 0.1);
-            }
-            cannone.setStroke(Color.BLACK);
-            cannone.setStrokeWidth(2);
-            getChildren().add(cannone);
+        // Torretta centrale
+        Circle torretta = new Circle(Math.min(cellSize * 0.12, 4));
+        torretta.setFill(scuro);
+        torretta.setStroke(Color.BLACK);
+        torretta.setStrokeWidth(0.5);
+        torretta.setCenterX(larghezza * 0.5);
+        torretta.setCenterY(altezza * 0.5);
+        
+        // Cannone
+        Line cannone = new Line();
+        if (orizzontale) {
+            cannone.setStartX(torretta.getCenterX());
+            cannone.setEndX(torretta.getCenterX() + 4);
+            cannone.setStartY(torretta.getCenterY());
+            cannone.setEndY(torretta.getCenterY());
+        } else {
+            cannone.setStartX(torretta.getCenterX());
+            cannone.setEndX(torretta.getCenterX());
+            cannone.setStartY(torretta.getCenterY());
+            cannone.setEndY(torretta.getCenterY() + 4);
         }
+        cannone.setStroke(Color.BLACK);
+        cannone.setStrokeWidth(1.5);
         
         // Ponte di comando
         Rectangle ponte = new Rectangle(
@@ -152,7 +123,7 @@ public class NaveGraphics extends Group {
         ponte.setX(orizzontale ? larghezza * 0.4 : larghezza * 0.2);
         ponte.setY(orizzontale ? altezza * 0.2 : altezza * 0.4);
         
-        getChildren().addAll(corpo, ponte);
+        getChildren().addAll(corpo, ponte, torretta, cannone);
     }
     
     private void creaCacciatorpediniere(double larghezza, double altezza, Color base, Color scuro, Color chiaro) {
@@ -185,8 +156,8 @@ public class NaveGraphics extends Group {
         corpo.setStroke(scuro);
         corpo.setStrokeWidth(1);
         
-        // Torretta singola
-        Circle torretta = new Circle(cellSize * 0.12);
+        // Torretta piccola
+        Circle torretta = new Circle(Math.min(cellSize * 0.08, 3));
         torretta.setFill(scuro);
         torretta.setStroke(Color.BLACK);
         torretta.setCenterX(larghezza * 0.5);
@@ -223,8 +194,8 @@ public class NaveGraphics extends Group {
         torre.setStroke(scuro);
         torre.setX(orizzontale ? larghezza * 0.4 : larghezza * 0.25);
         torre.setY(orizzontale ? altezza * 0.1 : altezza * 0.4);
-        torre.setArcWidth(3);
-        torre.setArcHeight(3);
+        torre.setArcWidth(2);
+        torre.setArcHeight(2);
         
         // Periscopio (linea sottile)
         Line periscopio = new Line();
@@ -240,24 +211,9 @@ public class NaveGraphics extends Group {
             periscopio.setEndY(altezza * 0.5);
         }
         periscopio.setStroke(Color.GRAY);
-        periscopio.setStrokeWidth(1.5);
+        periscopio.setStrokeWidth(1);
         
-        // Portelli (piccoli cerchi)
-        Circle portello1 = new Circle(2, Color.DARKGRAY);
-        Circle portello2 = new Circle(2, Color.DARKGRAY);
-        if (orizzontale) {
-            portello1.setCenterX(larghezza * 0.3);
-            portello1.setCenterY(altezza * 0.5);
-            portello2.setCenterX(larghezza * 0.7);
-            portello2.setCenterY(altezza * 0.5);
-        } else {
-            portello1.setCenterX(larghezza * 0.5);
-            portello1.setCenterY(altezza * 0.3);
-            portello2.setCenterX(larghezza * 0.5);
-            portello2.setCenterY(altezza * 0.7);
-        }
-        
-        getChildren().addAll(corpo, torre, periscopio, portello1, portello2);
+        getChildren().addAll(corpo, torre, periscopio);
     }
     
     private Color getColoreBase() {
@@ -278,8 +234,8 @@ public class NaveGraphics extends Group {
         Line x2 = new Line(cellSize - 2, 2, 2, cellSize - 2);
         x1.setStroke(Color.RED);
         x2.setStroke(Color.RED);
-        x1.setStrokeWidth(3);
-        x2.setStrokeWidth(3);
+        x1.setStrokeWidth(2);
+        x2.setStrokeWidth(2);
         getChildren().addAll(x1, x2);
     }
     
@@ -291,18 +247,18 @@ public class NaveGraphics extends Group {
         setOpacity(0.7);
         
         // Aggiungi onde d'acqua intorno
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 2; i++) {
             Arc onda = new Arc();
-            onda.setCenterX(Math.random() * cellSize);
-            onda.setCenterY(Math.random() * cellSize);
-            onda.setRadiusX(5 + Math.random() * 5);
-            onda.setRadiusY(3 + Math.random() * 2);
+            onda.setCenterX(Math.random() * cellSize * 0.8);
+            onda.setCenterY(Math.random() * cellSize * 0.8);
+            onda.setRadiusX(3 + Math.random() * 3);
+            onda.setRadiusY(2 + Math.random() * 2);
             onda.setStartAngle(0);
             onda.setLength(180);
             onda.setType(ArcType.OPEN);
             onda.setStroke(Color.LIGHTBLUE);
             onda.setFill(null);
-            onda.setStrokeWidth(1.5);
+            onda.setStrokeWidth(1);
             getChildren().add(onda);
         }
     }
