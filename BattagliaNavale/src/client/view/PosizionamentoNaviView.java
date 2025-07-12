@@ -4,10 +4,8 @@ import client.controller.GiocoController;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ProgressIndicator;
+import javafx.scene.control.*;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
@@ -15,11 +13,11 @@ import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import shared.model.Posizione;
 import shared.model.TipoNave;
-import shared.protocol.Comando;
-import shared.protocol.Messaggio;
+import utility.LogUtility;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * View per il posizionamento delle navi.
@@ -116,6 +114,47 @@ public class PosizionamentoNaviView {
 
         Scene scena = new Scene(root, 1100, 900);
         scena.getStylesheets().add(getClass().getResource("/warstyle.css").toExternalForm());
+        
+        // *** NUOVO: Gestione chiusura finestra ***
+        primaryStage.setOnCloseRequest(event -> {
+            LogUtility.info("[POSIZIONAMENTO] Richiesta chiusura finestra - disconnettendo dal server...");
+            
+            // Previeni la chiusura immediata
+            event.consume();
+            
+            // Mostra dialog di conferma
+            Alert confermaChiusura = new Alert(Alert.AlertType.CONFIRMATION);
+            confermaChiusura.setTitle("Conferma Uscita");
+            confermaChiusura.setHeaderText("Sei sicuro di voler uscire?");
+            confermaChiusura.setContentText("Se esci durante il posizionamento, l'altra persona dovrà aspettare un nuovo avversario.");
+            
+            ButtonType esciButton = new ButtonType("Esci");
+            ButtonType annullaButton = new ButtonType("Annulla", ButtonBar.ButtonData.CANCEL_CLOSE);
+            confermaChiusura.getButtonTypes().setAll(esciButton, annullaButton);
+            
+            Optional<ButtonType> result = confermaChiusura.showAndWait();
+            
+            if (result.isPresent() && result.get() == esciButton) {
+                LogUtility.info("[POSIZIONAMENTO] Uscita confermata - disconnessione in corso...");
+                
+                // Disconnetti dal server prima di chiudere
+                try {
+                    if (controller.isConnesso()) {
+                        controller.disconnetti();
+                        LogUtility.info("[POSIZIONAMENTO] Disconnessione completata");
+                    }
+                } catch (Exception e) {
+                    LogUtility.error("[POSIZIONAMENTO] Errore durante disconnessione: " + e.getMessage());
+                }
+                
+                // Ora chiudi l'applicazione
+                Platform.exit();
+                System.exit(0);
+            } else {
+                LogUtility.info("[POSIZIONAMENTO] Chiusura annullata dall'utente");
+            }
+        });
+        
         return scena;
     }
 
@@ -298,22 +337,22 @@ public class PosizionamentoNaviView {
         for (Posizione pos : posizioniNave) {
             Rectangle cella = celle[pos.getRiga()][pos.getColonna()];
             cella.setFill(coloreNave);
-            System.out.println("[DEBUG] Colorando cella (" + pos.getRiga() + "," + pos.getColonna() + ") con colore: " + coloreNave);
+            LogUtility.info("[POSIZIONAMENTO] Colorando cella (" + pos.getRiga() + "," + pos.getColonna() + ") con colore: " + coloreNave);
         }
         
         // Passa alla nave successiva
         indiceNaveCorrente++;
         if (indiceNaveCorrente < naviDaPosizionare.length) {
             naveCorrente = naviDaPosizionare[indiceNaveCorrente];
-            System.out.println("[DEBUG] Prossima nave: " + naveCorrente.getNome());
+            LogUtility.info("[POSIZIONAMENTO] Prossima nave: " + naveCorrente.getNome());
         } else {
-            System.out.println("[DEBUG] Tutte le navi posizionate! Attivando bottone conferma.");
+            LogUtility.info("[POSIZIONAMENTO] Tutte le navi posizionate! Attivando bottone conferma.");
         }
         
         // Aggiorna lo stato
         aggiornaStato();
         
-        // Non ricaricare la scena per non perdere i colori delle celle
+        // Aggiorna la lista navi
         aggiornaListaNavi();
     }
 
@@ -355,7 +394,7 @@ public class PosizionamentoNaviView {
             listaNaviBox.getChildren().add(naveLabel);
         }
         
-        System.out.println("[DEBUG] Lista navi aggiornata - Indice corrente: " + indiceNaveCorrente);
+        LogUtility.info("[POSIZIONAMENTO] Lista navi aggiornata - Indice corrente: " + indiceNaveCorrente);
     }
 
     private Color getColoreNave(TipoNave tipo) {
@@ -382,12 +421,12 @@ public class PosizionamentoNaviView {
             statoLabel.setText("Posiziona: " + naveCorrente.getNomeConLunghezza());
             statoLabel.setStyle("-fx-text-fill: white; -fx-font-size: 16px;");
             confermaButton.setDisable(true);
-            System.out.println("[DEBUG] Ancora navi da posizionare: " + (naviDaPosizionare.length - indiceNaveCorrente));
+            LogUtility.info("[POSIZIONAMENTO] Ancora navi da posizionare: " + (naviDaPosizionare.length - indiceNaveCorrente));
         } else {
             statoLabel.setText("✅ Tutte le navi posizionate! Clicca 'Conferma Flotta' per continuare.");
             statoLabel.setStyle("-fx-text-fill: #4CAF50; -fx-font-size: 16px; -fx-font-weight: bold;");
             confermaButton.setDisable(false);
-            System.out.println("[DEBUG] TUTTE LE NAVI POSIZIONATE! Bottone conferma abilitato.");
+            LogUtility.info("[POSIZIONAMENTO] TUTTE LE NAVI POSIZIONATE! Bottone conferma abilitato.");
         }
     }
 
@@ -408,7 +447,8 @@ public class PosizionamentoNaviView {
         // Reset dei controlli
         confermaButton.setDisable(true);
         aggiornaStato();
-        System.out.println("[DEBUG] Reset completo effettuato");
+        aggiornaListaNavi();
+        LogUtility.info("[POSIZIONAMENTO] Reset completo effettuato");
     }
 
     private void resetNaveCorrente() {
@@ -426,14 +466,11 @@ public class PosizionamentoNaviView {
             naveCorrente = naviDaPosizionare[indiceNaveCorrente];
             confermaButton.setDisable(true);
             aggiornaStato();
-            // Non ricaricare la scena
-            System.out.println("[DEBUG] Reset nave corrente. Torno a: " + naveCorrente.getNome());
+            aggiornaListaNavi();
+            LogUtility.info("[POSIZIONAMENTO] Reset nave corrente. Torno a: " + naveCorrente.getNome());
         }
     }
 
-    private void ricaricaScena() {
-        // RIMOSSO - Non ricarichiamo più la scena per evitare di perdere i colori
-    }
     /**
      * Invia le navi al Controller che le gestirà
      */
@@ -480,6 +517,37 @@ public class PosizionamentoNaviView {
 
         Scene scene = new Scene(root, 800, 600);
         scene.getStylesheets().add(getClass().getResource("/warstyle.css").toExternalForm());
+        
+        // Gestione chiusura anche nella schermata di attesa
+        primaryStage.setOnCloseRequest(event -> {
+            LogUtility.info("[POSIZIONAMENTO_ATTESA] Richiesta chiusura finestra - disconnettendo dal server...");
+            
+            event.consume();
+            
+            Alert confermaChiusura = new Alert(Alert.AlertType.CONFIRMATION);
+            confermaChiusura.setTitle("Conferma Uscita");
+            confermaChiusura.setHeaderText("Sei sicuro di voler uscire?");
+            confermaChiusura.setContentText("Se esci ora, l'avversario vincerà automaticamente.");
+            
+            ButtonType esciButton = new ButtonType("Esci");
+            ButtonType annullaButton = new ButtonType("Annulla", ButtonBar.ButtonData.CANCEL_CLOSE);
+            confermaChiusura.getButtonTypes().setAll(esciButton, annullaButton);
+            
+            Optional<ButtonType> result = confermaChiusura.showAndWait();
+            
+            if (result.isPresent() && result.get() == esciButton) {
+                try {
+                    if (controller.isConnesso()) {
+                        controller.disconnetti();
+                    }
+                } catch (Exception e) {
+                    LogUtility.error("[POSIZIONAMENTO_ATTESA] Errore durante disconnessione: " + e.getMessage());
+                }
+                Platform.exit();
+                System.exit(0);
+            }
+        });
+        
         primaryStage.setScene(scene);
 
         // Avvia l'ascolto per l'inizio battaglia
@@ -536,7 +604,7 @@ public class PosizionamentoNaviView {
     }
 
     private void mostraErrore(String messaggio) {
-        Alert alert = new Alert(Alert.AlertType.WARNING);
+        Alert alert = new Alert(AlertType.WARNING);
         alert.setTitle("Errore Posizionamento");
         alert.setHeaderText(null);
         alert.setContentText(messaggio);

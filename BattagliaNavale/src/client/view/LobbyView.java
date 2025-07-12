@@ -9,11 +9,11 @@ import javafx.scene.control.*;
 import javafx.scene.effect.ColorAdjust;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import shared.protocol.Comando;
-import shared.protocol.Messaggio;
 import utility.Impostazioni;
 import utility.ImpostazioniManager;
 import utility.LogUtility;
+
+import java.util.Optional;
 
 /**
  * View della Lobby che attende l'arrivo del secondo giocatore.
@@ -71,6 +71,46 @@ public class LobbyView extends Application {
 
         Scene scene = new Scene(root, 800, 600);
         scene.getStylesheets().add(getClass().getResource("/warstyle.css").toExternalForm());
+
+        // *** NUOVO: Gestione chiusura finestra ***
+        primaryStage.setOnCloseRequest(event -> {
+            LogUtility.info("[LOBBY] Richiesta chiusura finestra - disconnettendo dal server...");
+            
+            // Previeni la chiusura immediata
+            event.consume();
+            
+            // Mostra dialog di conferma
+            Alert confermaChiusura = new Alert(Alert.AlertType.CONFIRMATION);
+            confermaChiusura.setTitle("Conferma Uscita");
+            confermaChiusura.setHeaderText("Sei sicuro di voler uscire?");
+            confermaChiusura.setContentText("Se esci dalla lobby, l'altra persona dovrà aspettare un nuovo compagno di gioco.");
+            
+            ButtonType esciButton = new ButtonType("Esci");
+            ButtonType annullaButton = new ButtonType("Annulla", ButtonBar.ButtonData.CANCEL_CLOSE);
+            confermaChiusura.getButtonTypes().setAll(esciButton, annullaButton);
+            
+            Optional<ButtonType> result = confermaChiusura.showAndWait();
+            
+            if (result.isPresent() && result.get() == esciButton) {
+                LogUtility.info("[LOBBY] Uscita confermata - disconnessione in corso...");
+                
+                // Disconnetti dal server prima di chiudere
+                try {
+                    if (controller.isConnesso()) {
+                        controller.disconnetti();
+                        LogUtility.info("[LOBBY] Disconnessione completata");
+                    }
+                } catch (Exception e) {
+                    LogUtility.error("[LOBBY] Errore durante disconnessione: " + e.getMessage());
+                }
+                
+                // Ora chiudi l'applicazione
+                Platform.exit();
+                System.exit(0);
+            } else {
+                LogUtility.info("[LOBBY] Chiusura annullata dall'utente");
+            }
+        });
 
         // Avvia l'ascolto per il messaggio START
         avviaAscoltoStart();

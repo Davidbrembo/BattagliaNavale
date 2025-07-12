@@ -2,6 +2,7 @@ package client.view;
 
 import client.controller.GiocoController;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -10,6 +11,9 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import utility.Impostazioni;
 import utility.ImpostazioniManager;
+import utility.LogUtility;
+
+import java.util.Optional;
 
 /**
  * View per l'inserimento del nome giocatore.
@@ -85,9 +89,44 @@ public class GiocoView extends Application {
         primaryStage.setResizable(true);
         primaryStage.centerOnScreen();
 
-        // Gestione chiusura finestra - delega al Controller
+        // *** AGGIORNATO: Gestione chiusura finestra migliorata ***
         primaryStage.setOnCloseRequest(event -> {
-            controller.disconnetti();
+            LogUtility.info("[GIOCO] Richiesta chiusura finestra - disconnettendo dal server...");
+            
+            // Previeni la chiusura immediata
+            event.consume();
+            
+            // Mostra dialog di conferma
+            Alert confermaChiusura = new Alert(Alert.AlertType.CONFIRMATION);
+            confermaChiusura.setTitle("Conferma Uscita");
+            confermaChiusura.setHeaderText("Sei sicuro di voler uscire?");
+            confermaChiusura.setContentText("Se esci durante la connessione, potresti influenzare l'esperienza dell'altro giocatore.");
+            
+            ButtonType esciButton = new ButtonType("Esci");
+            ButtonType annullaButton = new ButtonType("Annulla", ButtonBar.ButtonData.CANCEL_CLOSE);
+            confermaChiusura.getButtonTypes().setAll(esciButton, annullaButton);
+            
+            Optional<ButtonType> result = confermaChiusura.showAndWait();
+            
+            if (result.isPresent() && result.get() == esciButton) {
+                LogUtility.info("[GIOCO] Uscita confermata - disconnessione in corso...");
+                
+                // Disconnetti dal server prima di chiudere
+                try {
+                    if (controller.isConnesso()) {
+                        controller.disconnetti();
+                        LogUtility.info("[GIOCO] Disconnessione completata");
+                    }
+                } catch (Exception e) {
+                    LogUtility.error("[GIOCO] Errore durante disconnessione: " + e.getMessage());
+                }
+                
+                // Ora chiudi l'applicazione
+                Platform.exit();
+                System.exit(0);
+            } else {
+                LogUtility.info("[GIOCO] Chiusura annullata dall'utente");
+            }
         });
 
         primaryStage.show();
@@ -137,6 +176,23 @@ public class GiocoView extends Application {
 
         Scene scene = new Scene(root, 800, 600);
         scene.getStylesheets().add(getClass().getResource("/warstyle.css").toExternalForm());
+        
+        // Gestione chiusura anche nella schermata errore
+        primaryStage.setOnCloseRequest(event -> {
+            LogUtility.info("[GIOCO_ERRORE] Chiusura applicazione da schermata errore");
+            
+            // In caso di errore di connessione, chiudi direttamente
+            try {
+                if (controller != null && controller.isConnesso()) {
+                    controller.disconnetti();
+                }
+            } catch (Exception e) {
+                LogUtility.error("[GIOCO_ERRORE] Errore durante disconnessione: " + e.getMessage());
+            }
+            
+            Platform.exit();
+            System.exit(0);
+        });
         
         primaryStage.setScene(scene);
         primaryStage.show();

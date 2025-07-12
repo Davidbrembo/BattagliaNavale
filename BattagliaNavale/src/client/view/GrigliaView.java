@@ -84,6 +84,46 @@ public class GrigliaView {
 
         Scene scena = new Scene(mainContainer, 1500, 700);
         
+        // *** NUOVO: Gestione chiusura finestra ***
+        primaryStage.setOnCloseRequest(event -> {
+            LogUtility.info("[GRIGLIA] Richiesta chiusura finestra - disconnettendo dal server...");
+            
+            // Previeni la chiusura immediata
+            event.consume();
+            
+            // Mostra dialog di conferma
+            Alert confermaChiusura = new Alert(Alert.AlertType.CONFIRMATION);
+            confermaChiusura.setTitle("Conferma Uscita");
+            confermaChiusura.setHeaderText("Sei sicuro di voler uscire?");
+            confermaChiusura.setContentText("Se esci durante una partita, l'avversario vincerà automaticamente.");
+            
+            ButtonType esciButton = new ButtonType("Esci");
+            ButtonType annullaButton = new ButtonType("Annulla", ButtonBar.ButtonData.CANCEL_CLOSE);
+            confermaChiusura.getButtonTypes().setAll(esciButton, annullaButton);
+            
+            Optional<ButtonType> result = confermaChiusura.showAndWait();
+            
+            if (result.isPresent() && result.get() == esciButton) {
+                LogUtility.info("[GRIGLIA] Uscita confermata - disconnessione in corso...");
+                
+                // Disconnetti dal server prima di chiudere
+                try {
+                    if (controller.isConnesso()) {
+                        controller.disconnetti();
+                        LogUtility.info("[GRIGLIA] Disconnessione completata");
+                    }
+                } catch (Exception e) {
+                    LogUtility.error("[GRIGLIA] Errore durante disconnessione: " + e.getMessage());
+                }
+                
+                // Ora chiudi l'applicazione
+                Platform.exit();
+                System.exit(0);
+            } else {
+                LogUtility.info("[GRIGLIA] Chiusura annullata dall'utente");
+            }
+        });
+        
         // Forza la colorazione delle navi dopo che la scena è stata creata
         Platform.runLater(() -> {
             LogUtility.info("[GRIGLIA] Forzando colorazione navi dopo creazione scena...");
