@@ -20,10 +20,14 @@ public class ServerSocketManager {
     private ServerGameManager gameManager;
     private boolean[] naviPosizionate = new boolean[2]; // Traccia se i giocatori hanno posizionato le navi
     private int giocatoriPronti = 0;
+    private boolean partitaFinita = false; // Nuovo flag per tracciare lo stato della partita
+    private List<NaveServer>[] naviPerGiocatore = new List[2]; // Traccia le navi per ogni giocatore
 
     public ServerSocketManager(int porta) throws IOException {
         this.serverSocket = new ServerSocket(porta);
         this.gameManager = new ServerGameManager(10, 10); // Griglia 10x10
+        this.naviPerGiocatore[0] = new ArrayList<>();
+        this.naviPerGiocatore[1] = new ArrayList<>();
         LogUtility.info("[SERVER] In ascolto sulla porta " + porta + ". Max connessioni: 2");
     }
 
@@ -66,6 +70,104 @@ public class ServerSocketManager {
         // Ora che abbiamo 2 client, rifiuta ulteriori connessioni
         LogUtility.info("[SERVER] 🚫 Partita completa (2/2 giocatori). Rifiutando nuove connessioni...");
         rifiutaNuoveConnessioni();
+    }
+    
+    /**
+     * Gestisce la disconnessione di un giocatore durante la partita
+     */
+    public synchronized void gestisciDisconnessione(int giocatoreID) {
+        LogUtility.info("[SERVER] Gestendo disconnessione del giocatore " + giocatoreID);
+        
+        if (partitaFinita) {
+            LogUtility.info("[SERVER] Partita già finita, ignorando disconnessione");
+            return;
+        }
+        
+        // Se la partita è in corso (entrambi i giocatori avevano posizionato le navi)
+        if (giocatoriPronti == 2) {
+            int vincitore = 1 - giocatoreID; // L'altro giocatore vince
+            
+            LogUtility.info("[SERVER] 🏆 Giocatore " + vincitore + " vince per disconnessione dell'avversario");
+            
+            // Invia messaggio di vittoria al giocatore rimasto
+            if (vincitore < clientHandlers.size() && clientHandlers.get(vincitore) != null) {
+                String nomeVincitore = clientHandlers.get(vincitore).getNomeGiocatore();
+                clientHandlers.get(vincitore).inviaMessaggio(
+                    new Messaggio(Comando.VITTORIA, "Hai vinto! L'avversario si è disconnesso.")
+                );
+                
+                // Invia notifica nella chat
+                inviaNotificaChatSingola(vincitore, "🏆 Hai vinto la partita per disconnessione dell'avversario!");
+            }
+            
+            partitaFinita = true;
+        } else {
+            LogUtility.info("[SERVER] Disconnessione durante fase di setup, partita non ancora iniziata");
+            
+            // Se un giocatore si disconnette durante il setup, informa l'altro
+            int altroGiocatore = 1 - giocatoreID;
+            if (altroGiocatore < clientHandlers.size() && clientHandlers.get(altroGiocatore) != null) {
+                clientHandlers.get(altroGiocatore).inviaMessaggio(
+                    new Messaggio(Comando.ERRORE, "L'altro giocatore si è disconnesso. Tornando al menu...")
+                );
+            }
+        }
+        
+        // Rimuovi il client handler per evitare riferimenti null
+        if (giocatoreID < clientHandlers.size()) {
+            clientHandlers.set(giocatoreID, null);
+        }
+    }
+    
+    /**
+     * Controlla se tutte le navi di un giocatore sono state affondate
+     */
+    private boolean tutteNaviAffondate(int giocatoreID) {
+        List<NaveServer> naviGiocatore = naviPerGiocatore[giocatoreID];
+        
+        for (NaveServer nave : naviGiocatore) {
+            if (!nave.affondata()) {
+                return false; // Se almeno una nave non è affondata, il giocatore non ha perso
+            }
+        }
+        
+        LogUtility.info("[SERVER] 🏆 Tutte le navi del giocatore " + giocatoreID + " sono state affondate!");
+        return true;
+    }
+    
+    /**
+     * Gestisce la fine della partita quando tutte le navi sono distrutte
+     */
+    private synchronized void gestisciFinePartita(int giocatoreSconfitto) {
+        if (partitaFinita) {
+            LogUtility.info("[SERVER] Partita già finita, ignorando ulteriore fine partita");
+            return;
+        }
+        
+        partitaFinita = true;
+        int vincitore = 1 - giocatoreSconfitto;
+        
+        LogUtility.info("[SERVER] 🎉 FINE PARTITA! Vincitore: Giocatore " + vincitore + 
+                       " (" + clientHandlers.get(vincitore).getNomeGiocatore() + ")");
+        
+        // Invia messaggio di vittoria al vincitore
+        String nomeVincitore = clientHandlers.get(vincitore).getNomeGiocatore();
+        String nomeSconfitto = clientHandlers.get(giocatoreSconfitto).getNomeGiocatore();
+        
+        clientHandlers.get(vincitore).inviaMessaggio(
+            new Messaggio(Comando.VITTORIA, "🎉 Complimenti " + nomeVincitore + "! Hai distrutto tutta la flotta nemica!")
+        );
+        
+        // Invia messaggio di sconfitta al perdente
+        clientHandlers.get(giocatoreSconfitto).inviaMessaggio(
+            new Messaggio(Comando.SCONFITTA, "💀 " + nomeSconfitto + ", la tua flotta è stata completamente distrutta!")
+        );
+        
+        // Invia notifiche finali nella chat
+        inviaNotificaChatATutti("🏁 FINE PARTITA! 🏆 " + nomeVincitore + " ha vinto la battaglia navale!");
+        inviaNotificaChatATutti("📊 Risultato finale: " + nomeVincitore + " vs " + nomeSconfitto);
+        
+        LogUtility.info("[SERVER] Messaggi di fine partita inviati a entrambi i giocatori");
     }
     
     /**
@@ -136,10 +238,12 @@ public class ServerSocketManager {
                 return;
             }
             
-            // Aggiungi le navi alla griglia del giocatore
+            // Aggiungi le navi alla griglia del giocatore e salvale per il controllo vittoria
+            naviPerGiocatore[giocatoreID].clear();
             for (List<Posizione> posizioni : naviGiocatore) {
                 NaveServer nave = new NaveServer(posizioni);
                 gameManager.getGriglie()[giocatoreID].aggiungiNave(nave);
+                naviPerGiocatore[giocatoreID].add(nave); // Salva il riferimento per i controlli vittoria
                 LogUtility.info("[SERVER] Aggiunta nave per giocatore " + giocatoreID + 
                                " (lunghezza " + posizioni.size() + "): " + posizioni);
             }
@@ -155,7 +259,9 @@ public class ServerSocketManager {
                 
                 Messaggio inizioBattaglia = new Messaggio(Comando.INIZIO_BATTAGLIA, "Battaglia iniziata!");
                 for (ClientHandler handler : clientHandlers) {
-                    handler.inviaMessaggio(inizioBattaglia);
+                    if (handler != null) {
+                        handler.inviaMessaggio(inizioBattaglia);
+                    }
                 }
                 
                 // Informa il primo giocatore che è il suo turno
@@ -163,7 +269,7 @@ public class ServerSocketManager {
                 clientHandlers.get(1).inviaMessaggio(new Messaggio(Comando.STATO, "Aspetta il tuo turno"));
                 
                 // Invia notifica di connessione nella chat
-                inviaNotificaChat("🌊 La battaglia navale è iniziata! Buona fortuna!");
+                inviaNotificaChatATutti("🌊 La battaglia navale è iniziata! Buona fortuna!");
             }
             
         } catch (ClassCastException e) {
@@ -216,6 +322,12 @@ public class ServerSocketManager {
     
     // Gestisce un attacco da parte di un giocatore
     public synchronized void gestisciAttacco(int giocatoreID, Posizione posizione) {
+        // Controlla se la partita è già finita
+        if (partitaFinita) {
+            LogUtility.warning("[SERVER] Tentativo di attacco dopo la fine della partita");
+            return;
+        }
+        
         // Controlla che entrambi i giocatori abbiano posizionato le navi
         if (giocatoriPronti < 2) {
             clientHandlers.get(giocatoreID).inviaMessaggio(
@@ -254,6 +366,17 @@ public class ServerSocketManager {
         LogUtility.info("[SERVER] Risultato attacco: " + (risultato.isColpito() ? "COLPITO" : "MANCATO") + 
                        " in posizione " + posizione);
         
+        // *** NUOVO: Controlla la vittoria dopo ogni attacco ***
+        if (risultato.isColpito() && risultato.isNaveAffondata()) {
+            LogUtility.info("[SERVER] 🚢 Nave affondata! Controllando se tutte le navi sono distrutte...");
+            
+            // Controlla se tutte le navi del difensore sono state affondate
+            if (tutteNaviAffondate(difensore)) {
+                gestisciFinePartita(difensore); // Il difensore ha perso
+                return; // Fine della partita, non continuare con la logica dei turni
+            }
+        }
+        
         // Se non ha colpito, passa il turno
         if (!risultato.isColpito()) {
             gameManager.passaTurno();
@@ -290,11 +413,13 @@ public class ServerSocketManager {
             // Inoltra il messaggio all'altro giocatore
             int destinatario = 1 - giocatoreID; // Se è 0 diventa 1, se è 1 diventa 0
             
-            Messaggio messaggioChat = new Messaggio(Comando.MESSAGGIO_CHAT, messaggioData);
-            clientHandlers.get(destinatario).inviaMessaggio(messaggioChat);
-            
-            LogUtility.info("[SERVER] Messaggio chat inoltrato dal giocatore " + giocatoreID + 
-                           " al giocatore " + destinatario);
+            if (destinatario < clientHandlers.size() && clientHandlers.get(destinatario) != null) {
+                Messaggio messaggioChat = new Messaggio(Comando.MESSAGGIO_CHAT, messaggioData);
+                clientHandlers.get(destinatario).inviaMessaggio(messaggioChat);
+                
+                LogUtility.info("[SERVER] Messaggio chat inoltrato dal giocatore " + giocatoreID + 
+                               " al giocatore " + destinatario);
+            }
                            
         } catch (Exception e) {
             LogUtility.error("[SERVER] Errore nell'gestione messaggio chat: " + e.getMessage());
@@ -302,7 +427,7 @@ public class ServerSocketManager {
     }
     
     // Invia una notifica di sistema nella chat a tutti i giocatori
-    private void inviaNotificaChat(String testo) {
+    private void inviaNotificaChatATutti(String testo) {
         if (clientHandlers.size() < 2) return;
         
         // Crea un messaggio di sistema (mittente = "Sistema")
@@ -315,10 +440,29 @@ public class ServerSocketManager {
             Messaggio msg = new Messaggio(Comando.MESSAGGIO_CHAT, messaggioSistema);
             
             for (ClientHandler handler : clientHandlers) {
-                handler.inviaMessaggio(msg);
+                if (handler != null) {
+                    handler.inviaMessaggio(msg);
+                }
             }
         } catch (Exception e) {
             LogUtility.error("[SERVER] Errore nell'invio notifica chat: " + e.getMessage());
+        }
+    }
+    
+    // Invia una notifica di sistema nella chat a un singolo giocatore
+    private void inviaNotificaChatSingola(int giocatoreID, String testo) {
+        if (giocatoreID >= clientHandlers.size() || clientHandlers.get(giocatoreID) == null) return;
+        
+        try {
+            Class<?> messaggioChatClass = Class.forName("client.view.ChatView$MessaggioChat");
+            Object messaggioSistema = messaggioChatClass
+                .getDeclaredConstructor(String.class, String.class)
+                .newInstance("🤖 Sistema", testo);
+            
+            Messaggio msg = new Messaggio(Comando.MESSAGGIO_CHAT, messaggioSistema);
+            clientHandlers.get(giocatoreID).inviaMessaggio(msg);
+        } catch (Exception e) {
+            LogUtility.error("[SERVER] Errore nell'invio notifica chat singola: " + e.getMessage());
         }
     }
 

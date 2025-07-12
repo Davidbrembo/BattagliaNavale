@@ -5,7 +5,7 @@ import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Label;
+import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
@@ -16,6 +16,7 @@ import shared.model.RisultatoAttacco;
 import utility.LogUtility;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * View responsabile solo della visualizzazione delle griglie di gioco.
@@ -288,6 +289,9 @@ public class GrigliaView {
             statoLabel.setText("🎉 " + messaggio + " 🎉");
             statoLabel.setStyle("-fx-text-fill: gold; -fx-font-size: 20px; -fx-font-weight: bold;");
             disabilitaGriglia();
+            
+            // Mostra un popup di vittoria più elaborato
+            mostraPopupVittoria(messaggio);
         });
     }
 
@@ -299,6 +303,9 @@ public class GrigliaView {
             statoLabel.setText("💀 " + messaggio + " 💀");
             statoLabel.setStyle("-fx-text-fill: red; -fx-font-size: 20px; -fx-font-weight: bold;");
             disabilitaGriglia();
+            
+            // Mostra un popup di sconfitta più elaborato
+            mostraPopupSconfitta(messaggio);
         });
     }
 
@@ -309,6 +316,170 @@ public class GrigliaView {
         Platform.runLater(() -> {
             statoLabel.setText("❌ " + errore);
             statoLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px; -fx-font-weight: bold;");
+        });
+    }
+
+    // ================== POPUP METHODS ==================
+
+    /**
+     * Mostra un popup di vittoria con opzioni
+     */
+    private void mostraPopupVittoria(String messaggio) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("🏆 VITTORIA!");
+        alert.setHeaderText("Complimenti, hai vinto!");
+        alert.setContentText(messaggio + "\n\nCosa vuoi fare adesso?");
+        
+        // Personalizza i pulsanti
+        ButtonType nuovaPartitaButton = new ButtonType("🔄 Nuova Partita");
+        ButtonType menuButton = new ButtonType("🏠 Torna al Menu");
+        ButtonType esciButton = new ButtonType("❌ Esci", ButtonBar.ButtonData.CANCEL_CLOSE);
+        
+        alert.getButtonTypes().setAll(nuovaPartitaButton, menuButton, esciButton);
+        
+        // Applica stile CSS se disponibile
+        try {
+            alert.getDialogPane().getStylesheets().add(getClass().getResource("/warstyle.css").toExternalForm());
+            alert.getDialogPane().getStyleClass().add("victory-dialog");
+        } catch (Exception e) {
+            LogUtility.warning("[GRIGLIA] Impossibile caricare CSS per dialog vittoria: " + e.getMessage());
+        }
+        
+        Optional<ButtonType> result = alert.showAndWait();
+        
+        result.ifPresent(buttonType -> {
+            if (buttonType == nuovaPartitaButton) {
+                // Avvia una nuova partita
+                avviaNuovaPartita();
+            } else if (buttonType == menuButton) {
+                // Torna al menu principale
+                tornaAlMenu();
+            } else if (buttonType == esciButton) {
+                // Chiudi l'applicazione
+                System.exit(0);
+            }
+        });
+    }
+
+    /**
+     * Mostra un popup di sconfitta con opzioni
+     */
+    private void mostraPopupSconfitta(String messaggio) {
+        Alert alert = new Alert(Alert.AlertType.WARNING);
+        alert.setTitle("💀 SCONFITTA");
+        alert.setHeaderText("Hai perso la battaglia...");
+        alert.setContentText(messaggio + "\n\nNon mollare! Vuoi riprovare?");
+        
+        // Personalizza i pulsanti
+        ButtonType rivincitaButton = new ButtonType("⚔️ Rivincita");
+        ButtonType menuButton = new ButtonType("🏠 Torna al Menu");
+        ButtonType esciButton = new ButtonType("❌ Esci", ButtonBar.ButtonData.CANCEL_CLOSE);
+        
+        alert.getButtonTypes().setAll(rivincitaButton, menuButton, esciButton);
+        
+        // Applica stile CSS se disponibile
+        try {
+            alert.getDialogPane().getStylesheets().add(getClass().getResource("/warstyle.css").toExternalForm());
+            alert.getDialogPane().getStyleClass().add("defeat-dialog");
+        } catch (Exception e) {
+            LogUtility.warning("[GRIGLIA] Impossibile caricare CSS per dialog sconfitta: " + e.getMessage());
+        }
+        
+        Optional<ButtonType> result = alert.showAndWait();
+        
+        result.ifPresent(buttonType -> {
+            if (buttonType == rivincitaButton) {
+                // Avvia una nuova partita
+                avviaNuovaPartita();
+            } else if (buttonType == menuButton) {
+                // Torna al menu principale
+                tornaAlMenu();
+            } else if (buttonType == esciButton) {
+                // Chiudi l'applicazione
+                System.exit(0);
+            }
+        });
+    }
+
+    /**
+     * Avvia una nuova partita
+     */
+    private void avviaNuovaPartita() {
+        try {
+            LogUtility.info("[GRIGLIA] Avvio nuova partita...");
+            
+            // Disconnetti dal controller corrente
+            controller.disconnetti();
+            
+            // Piccola pausa per assicurarsi che la disconnessione sia completata
+            new Thread(() -> {
+                try {
+                    Thread.sleep(1000); // Aspetta 1 secondo
+                    
+                    Platform.runLater(() -> {
+                        try {
+                            SchermataInizialeView schermataIniziale = new SchermataInizialeView();
+                            Stage currentStage = (Stage) statoLabel.getScene().getWindow();
+                            schermataIniziale.start(currentStage);
+                        } catch (Exception e) {
+                            LogUtility.error("[GRIGLIA] Errore nell'avvio nuova partita: " + e.getMessage());
+                            e.printStackTrace();
+                            // Fallback al menu
+                            tornaAlMenu();
+                        }
+                    });
+                } catch (InterruptedException e) {
+                    LogUtility.warning("[GRIGLIA] Interruzione durante l'attesa: " + e.getMessage());
+                    Platform.runLater(this::tornaAlMenu);
+                }
+            }).start();
+            
+        } catch (Exception e) {
+            LogUtility.error("[GRIGLIA] Errore nella disconnessione: " + e.getMessage());
+            tornaAlMenu(); // Fallback al menu
+        }
+    }
+
+    /**
+     * Torna al menu principale
+     */
+    private void tornaAlMenu() {
+        try {
+            LogUtility.info("[GRIGLIA] Tornando al menu principale...");
+            
+            // Disconnetti dal controller corrente
+            controller.disconnetti();
+            
+            Platform.runLater(() -> {
+                try {
+                    SchermataInizialeView schermataIniziale = new SchermataInizialeView();
+                    Stage currentStage = (Stage) statoLabel.getScene().getWindow();
+                    schermataIniziale.start(currentStage);
+                } catch (Exception e) {
+                    LogUtility.error("[GRIGLIA] Errore nel tornare al menu: " + e.getMessage());
+                    e.printStackTrace();
+                    // Come ultima risorsa, chiudi l'applicazione
+                    mostraErroreEChiudi("Errore critico nel tornare al menu. L'applicazione verrà chiusa.");
+                }
+            });
+        } catch (Exception e) {
+            LogUtility.error("[GRIGLIA] Errore nella disconnessione: " + e.getMessage());
+            mostraErroreEChiudi("Errore nella disconnessione. L'applicazione verrà chiusa.");
+        }
+    }
+
+    /**
+     * Mostra un errore critico e chiude l'applicazione
+     */
+    private void mostraErroreEChiudi(String messaggio) {
+        Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Errore Critico");
+            alert.setHeaderText("Si è verificato un errore critico");
+            alert.setContentText(messaggio);
+            
+            alert.showAndWait();
+            System.exit(1);
         });
     }
 
@@ -343,5 +514,69 @@ public class GrigliaView {
 
     public ChatView getChatView() {
         return chatView;
+    }
+
+    /**
+     * Verifica se la griglia è stata inizializzata correttamente
+     */
+    public boolean isInizializzata() {
+        return grigliaPropria != null && grigliaAvversario != null && 
+               celleAttaccateAvversario != null && statoLabel != null;
+    }
+
+    /**
+     * Restituisce lo stato corrente della griglia avversario per debug
+     */
+    public String getStatoGrigliaAvversario() {
+        if (celleAttaccateAvversario == null) return "Non inizializzata";
+        
+        int celleAttaccate = 0;
+        for (int i = 0; i < 10; i++) {
+            for (int j = 0; j < 10; j++) {
+                if (celleAttaccateAvversario[i][j]) {
+                    celleAttaccate++;
+                }
+            }
+        }
+        return "Celle attaccate: " + celleAttaccate + "/100";
+    }
+
+    /**
+     * Reset della griglia per debug/testing
+     */
+    public void resetGriglia() {
+        Platform.runLater(() -> {
+            LogUtility.info("[GRIGLIA] Reset griglia in corso...");
+            
+            // Reset griglia avversario
+            if (grigliaAvversario != null && celleAttaccateAvversario != null) {
+                for (int i = 0; i < 10; i++) {
+                    for (int j = 0; j < 10; j++) {
+                        grigliaAvversario[i][j].setFill(Color.LIGHTGRAY);
+                        grigliaAvversario[i][j].setOpacity(1.0);
+                        grigliaAvversario[i][j].setOnMouseClicked(null);
+                        celleAttaccateAvversario[i][j] = false;
+                    }
+                }
+            }
+            
+            // Reset griglia propria
+            if (grigliaPropria != null) {
+                for (int i = 0; i < 10; i++) {
+                    for (int j = 0; j < 10; j++) {
+                        grigliaPropria[i][j].setFill(Color.LIGHTBLUE);
+                        grigliaPropria[i][j].setOpacity(1.0);
+                    }
+                }
+            }
+            
+            // Reset stato
+            if (statoLabel != null) {
+                statoLabel.setText("Griglia resettata");
+                statoLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;");
+            }
+            
+            LogUtility.info("[GRIGLIA] Reset griglia completato");
+        });
     }
 }

@@ -49,3 +49,68 @@
     -fx-pref-width: 300px;  /* Imposta la larghezza dello slider */
 }
 
+.victory-dialog {
+    -fx-background-color: linear-gradient(to bottom, #2E7D32, #1B5E20);
+    -fx-border-color: #4CAF50;
+    -fx-border-width: 2px;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+}
+
+.victory-dialog .header-panel {
+    -fx-background-color: linear-gradient(to bottom, #4CAF50, #2E7D32);
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.victory-dialog .content {
+    -fx-background-color: #263238;
+    -fx-text-fill: #E8F5E8;
+    -fx-font-size: 14px;
+}
+
+/* Dialog di sconfitta */
+.defeat-dialog {
+    -fx-background-color: linear-gradient(to bottom, #C62828, #B71C1C);
+    -fx-border-color: #F44336;
+    -fx-border-width: 2px;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+}
+
+.defeat-dialog .header-panel {
+    -fx-background-color: linear-gradient(to bottom, #F44336, #C62828);
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.defeat-dialog .content {
+    -fx-background-color: #263238;
+    -fx-text-fill: #FFEBEE;
+    -fx-font-size: 14px;
+}
+
+/* Pulsanti nei dialog */
+.victory-dialog .button, .defeat-dialog .button {
+    -fx-background-color: #37474F;
+    -fx-text-fill: white;
+    -fx-border-color: #607D8B;
+    -fx-border-width: 1px;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+    -fx-padding: 8px 16px;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.victory-dialog .button:hover, .defeat-dialog .button:hover {
+    -fx-background-color: #455A64;
+    -fx-border-color: #78909C;
+}
+
+.victory-dialog .button:pressed, .defeat-dialog .button:pressed {
+    -fx-background-color: #263238;
+}
+

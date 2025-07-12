@@ -218,26 +218,47 @@ public class GiocoController {
         }
     }
 
+    /**
+     * Gestisce la vittoria (aggiornato)
+     */
     private void gestisciVittoria(String messaggio) {
         statoPartita = StatoPartita.FINITA;
+        LogUtility.info("[CLIENT] 🏆 VITTORIA! " + messaggio);
+        
         if (grigliaView != null) {
             grigliaView.gestisciVittoria(messaggio);
         }
         if (chatView != null) {
             chatView.mostraNotificaSistema("🎉 " + messaggio);
+            chatView.mostraNotificaSistema("🏆 Partita terminata - Hai vinto!");
         }
+        
+        // Ferma eventuali thread di ascolto
+        mioTurno = false;
     }
 
+    /**
+     * Gestisce la sconfitta (aggiornato)
+     */
     private void gestisciSconfitta(String messaggio) {
         statoPartita = StatoPartita.FINITA;
+        LogUtility.info("[CLIENT] 💀 SCONFITTA: " + messaggio);
+        
         if (grigliaView != null) {
             grigliaView.gestisciSconfitta(messaggio);
         }
         if (chatView != null) {
             chatView.mostraNotificaSistema("💀 " + messaggio);
+            chatView.mostraNotificaSistema("⚰️ Partita terminata - Hai perso!");
         }
+        
+        // Ferma eventuali thread di ascolto
+        mioTurno = false;
     }
 
+    /**
+     * Gestisce gli errori (aggiornato per gestire disconnessioni)
+     */
     private void gestisciErrore(String errore) {
         LogUtility.error("[CLIENT] Errore dal server: " + errore);
         
@@ -252,10 +273,36 @@ public class GiocoController {
                     grigliaView.mostraErrore("Server pieno! Partita già in corso con 2 giocatori.");
                 }
             });
+        } else if (errore.contains("disconnesso") || errore.contains("Connessione")) {
+            // Gestisce errori di connessione durante la partita
+            LogUtility.warning("[CLIENT] Errore di connessione: " + errore);
+            connesso = false;
+            
+            Platform.runLater(() -> {
+                if (statoPartita == StatoPartita.BATTAGLIA || statoPartita == StatoPartita.ATTESA_BATTAGLIA) {
+                    // Se eravamo in partita, mostra come vittoria per disconnessione avversario
+                    if (grigliaView != null) {
+                        grigliaView.gestisciVittoria("Hai vinto! L'avversario si è disconnesso.");
+                    }
+                } else {
+                    // Altrimenti mostra errore generico
+                    if (grigliaView != null) {
+                        grigliaView.mostraErrore("Connessione persa: " + errore);
+                    }
+                }
+                
+                if (chatView != null) {
+                    chatView.mostraNotificaSistema("🔌 Connessione interrotta: " + errore);
+                }
+            });
         } else {
             // Altri errori di gioco normali
             if (grigliaView != null) {
                 grigliaView.mostraErrore(errore);
+            }
+            
+            if (chatView != null) {
+                chatView.mostraNotificaSistema("⚠️ Errore: " + errore);
             }
         }
     }
@@ -371,14 +418,59 @@ public class GiocoController {
         clientSocket.inviaMessaggio(messaggio);
     }
 
+    /**
+     * Disconnessione con gestione migliorata
+     */
     public void disconnetti() {
+        LogUtility.info("[CLIENT] Iniziando disconnessione...");
+        
+        // Ferma il flag di connessione per interrompere i thread
         connesso = false;
-        if (ascoltoThread != null) {
+        mioTurno = false;
+        
+        // Interrompe il thread di ascolto
+        if (ascoltoThread != null && ascoltoThread.isAlive()) {
+            LogUtility.info("[CLIENT] Interruzione thread di ascolto...");
             ascoltoThread.interrupt();
+            
+            // Aspetta che il thread termini (con timeout)
+            try {
+                ascoltoThread.join(2000); // Aspetta massimo 2 secondi
+                if (ascoltoThread.isAlive()) {
+                    LogUtility.warning("[CLIENT] Thread di ascolto non terminato in tempo");
+                }
+            } catch (InterruptedException e) {
+                LogUtility.warning("[CLIENT] Interruzione durante l'attesa del thread");
+            }
         }
-        inviaMessaggio(new Messaggio(Comando.DISCONNESSIONE, "Client si disconnette"));
+        
+        // Invia messaggio di disconnessione se ancora connesso
+        if (clientSocket.getOutputStream() != null) {
+            try {
+                inviaMessaggio(new Messaggio(Comando.DISCONNESSIONE, "Client si disconnette"));
+                LogUtility.info("[CLIENT] Messaggio di disconnessione inviato");
+            } catch (Exception e) {
+                LogUtility.warning("[CLIENT] Errore nell'invio messaggio disconnessione: " + e.getMessage());
+            }
+        }
+        
+        // Chiudi la connessione socket
         clientSocket.chiudiConnessione();
+        
+        // Reset stato interno
+        statoPartita = StatoPartita.LOBBY;
+        myPlayerID = -1;
+        nomeGiocatore = null;
+        mieiNaviPosizionate.clear();
+        
         LogUtility.info("[CLIENT] Disconnessione completata");
+    }
+
+    /**
+     * Verifica lo stato della connessione
+     */
+    public boolean verificaConnessione() {
+        return connesso && clientSocket != null && clientSocket.getOutputStream() != null;
     }
 
     // ================== GETTERS ==================
