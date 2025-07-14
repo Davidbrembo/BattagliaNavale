@@ -46,91 +46,100 @@ public class AudioFileCreator {
         }
     }
     
-    // Suoni sintetici più dolci e meno acuti
+    // Suoni sintetici ancora più dolci
     private static void creaSuonoColpo() {
-        byte[] audioData = generaTono(300, 0.15, 0.3); // Tono medio-grave, breve, volume basso
+        byte[] audioData = generaTono(280, 0.12, 0.2); // Volume ridotto da 0.3 a 0.2
         salvaAudio("hit.wav", audioData);
     }
     
     private static void creaSuonoMancato() {
-        byte[] audioData = generaTono(150, 0.2, 0.2); // Tono grave, più lungo, volume molto basso
+        byte[] audioData = generaTono(140, 0.15, 0.15); // Volume ridotto da 0.2 a 0.15
         salvaAudio("miss.wav", audioData);
     }
     
     private static void creaSuonoNaveAffondata() {
-        // Sequenza di toni discendenti più dolci
-        byte[] parte1 = generaTono(250, 0.15, 0.3);
-        byte[] parte2 = generaTono(200, 0.15, 0.25);
-        byte[] parte3 = generaTono(150, 0.3, 0.2);
+        // Sequenza più dolce con volumi ridotti
+        byte[] parte1 = generaTono(220, 0.12, 0.2);  // Ridotto
+        byte[] parte2 = generaTono(180, 0.12, 0.18); // Ridotto
+        byte[] parte3 = generaTono(140, 0.25, 0.15); // Ridotto
         byte[] audioData = combina(combina(parte1, parte2), parte3);
         salvaAudio("sunk.wav", audioData);
     }
     
     private static void creaSuonoVittoria() {
-        // Sequenza ascendente più dolce per vittoria
-        byte[] parte1 = generaTono(262, 0.2, 0.25); // Do più grave
-        byte[] parte2 = generaTono(330, 0.2, 0.3);  // Mi più grave
-        byte[] parte3 = generaTono(392, 0.4, 0.35); // Sol più grave
+        // Sequenza più dolce per vittoria
+        byte[] parte1 = generaTono(220, 0.15, 0.18); // Ridotto
+        byte[] parte2 = generaTono(277, 0.15, 0.2);  // Ridotto
+        byte[] parte3 = generaTono(330, 0.3, 0.22);  // Ridotto
         byte[] audioData = combina(combina(parte1, parte2), parte3);
         salvaAudio("victory.wav", audioData);
     }
     
     private static void creaSuonoSconfitta() {
-        // Sequenza discendente più dolce per sconfitta
-        byte[] parte1 = generaTono(220, 0.3, 0.25);
-        byte[] parte2 = generaTono(180, 0.3, 0.2);
-        byte[] parte3 = generaTono(150, 0.5, 0.15);
+        // Sequenza ancora più dolce per sconfitta
+        byte[] parte1 = generaTono(200, 0.25, 0.18);
+        byte[] parte2 = generaTono(160, 0.25, 0.15);
+        byte[] parte3 = generaTono(130, 0.4, 0.12);
         byte[] audioData = combina(combina(parte1, parte2), parte3);
         salvaAudio("defeat.wav", audioData);
     }
     
     private static void creaSuonoPosizionamento() {
-        byte[] audioData = generaTono(220, 0.08, 0.2); // La più grave e più breve
+        byte[] audioData = generaTono(200, 0.06, 0.15); // Molto ridotto
         salvaAudio("place_ship.wav", audioData);
     }
     
     private static void creaSuonoNotifica() {
-        // Due toni rapidi più dolci
-        byte[] parte1 = generaTono(350, 0.08, 0.25);
-        byte[] pausa = new byte[SAMPLE_RATE / 25]; // Pausa di 40ms
-        byte[] parte2 = generaTono(350, 0.08, 0.25);
-        byte[] audioData = combina(combina(parte1, pausa), parte2);
+        // Due toni ancora più dolci
+        byte[] parte1 = generaTono(300, 0.06, 0.18);
+        byte[] parte2 = generaTono(300, 0.06, 0.18);
+        byte[] audioData = combina(parte1, parte2);
         salvaAudio("notification.wav", audioData);
     }
     
     private static void creaSuonoClick() {
-        byte[] audioData = generaTono(400, 0.03, 0.15); // Click molto breve e dolce
+        byte[] audioData = generaTono(350, 0.025, 0.12); // Molto breve e dolce
         salvaAudio("button_click.wav", audioData);
     }
     
     private static void creaSuonoTurno() {
-        byte[] audioData = generaTono(280, 0.12, 0.25); // Tono medio-grave
+        byte[] audioData = generaTono(250, 0.1, 0.18); // Ridotto
         salvaAudio("turn_start.wav", audioData);
     }
     
     private static void creaSuonoChat() {
-        byte[] audioData = generaTono(320, 0.06, 0.2); // Tono più delicato
+        byte[] audioData = generaTono(280, 0.05, 0.15); // Molto delicato
         salvaAudio("chat_message.wav", audioData);
     }
     
-    // Utility per generare toni
+    // Utility per generare toni con fade migliore
     private static byte[] generaTono(double frequenza, double durata, double volume) {
         int numSamples = (int) (SAMPLE_RATE * durata);
         byte[] audioData = new byte[numSamples * 2]; // 16-bit samples
         
         for (int i = 0; i < numSamples; i++) {
             double time = i / (double) SAMPLE_RATE;
-            double amplitude = volume * 32767; // Massima ampiezza per 16-bit
+            double amplitude = volume * 16383; // Ridotta ampiezza massima per evitare distorsioni
             
-            // Genera onda sinusoidale con envelope per evitare click
+            // Envelope più dolce con fade più lunghi
             double envelope = 1.0;
-            if (i < numSamples * 0.1) { // Fade in
-                envelope = i / (numSamples * 0.1);
-            } else if (i > numSamples * 0.9) { // Fade out
-                envelope = (numSamples - i) / (numSamples * 0.1);
+            double fadeInSamples = numSamples * 0.3;  // 30% per fade-in (prima era 10%)
+            double fadeOutSamples = numSamples * 0.3; // 30% per fade-out (prima era 10%)
+            
+            if (i < fadeInSamples) { 
+                // Fade in con curva più dolce (coseno invece di lineare)
+                envelope = 0.5 * (1 - Math.cos(Math.PI * i / fadeInSamples));
+            } else if (i > numSamples - fadeOutSamples) { 
+                // Fade out con curva più dolce
+                double fadePosition = (numSamples - i) / fadeOutSamples;
+                envelope = 0.5 * (1 - Math.cos(Math.PI * fadePosition));
             }
             
+            // Genera onda sinusoidale più dolce
             short sample = (short) (amplitude * envelope * Math.sin(2 * Math.PI * frequenza * time));
+            
+            // Limita il segnale per evitare clipping
+            sample = (short) Math.max(-16383, Math.min(16383, sample));
             
             // Little-endian 16-bit
             audioData[i * 2] = (byte) (sample & 0xFF);
@@ -141,9 +150,14 @@ public class AudioFileCreator {
     }
     
     private static byte[] combina(byte[] audio1, byte[] audio2) {
-        byte[] combined = new byte[audio1.length + audio2.length];
+        // Aggiungi una piccola pausa tra i suoni per evitare click
+        int pauseSamples = SAMPLE_RATE / 50; // 20ms di pausa
+        byte[] pausa = new byte[pauseSamples * 2]; // Silenzio
+        
+        byte[] combined = new byte[audio1.length + pausa.length + audio2.length];
         System.arraycopy(audio1, 0, combined, 0, audio1.length);
-        System.arraycopy(audio2, 0, combined, audio1.length, audio2.length);
+        System.arraycopy(pausa, 0, combined, audio1.length, pausa.length);
+        System.arraycopy(audio2, 0, combined, audio1.length + pausa.length, audio2.length);
         return combined;
     }
     

@@ -1,3 +1,13 @@
 /client/
 /utility/
 /server/
+/button_click.wav
+/chat_message.wav
+/defeat.wav
+/hit.wav
+/miss.wav
+/notification.wav
+/place_ship.wav
+/sunk.wav
+/turn_start.wav
+/victory.wav
