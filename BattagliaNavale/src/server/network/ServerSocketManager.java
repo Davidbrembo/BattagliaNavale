@@ -49,18 +49,35 @@ public class ServerSocketManager {
 
                 LogUtility.info("[SERVER] Connessi: " + clientHandlers.size() + "/2");
 
-                // Se entrambi sono connessi, invia START per iniziare il posizionamento
+                // Se entrambi sono connessi, aspetta un po' che si inizializzino, poi invia START
                 if (clientHandlers.size() == 2) {
-                    LogUtility.info("[SERVER] 🚀 Entrambi i giocatori connessi. Inizio fase posizionamento navi.");
-                    Messaggio startMsg = new Messaggio(Comando.START, "Inizia il posizionamento delle navi!");
+                    LogUtility.info("[SERVER] 🚀 Entrambi i giocatori connessi. Aspettando inizializzazione...");
                     
-                    LogUtility.info("[SERVER] Inviando START al giocatore 0");
-                    clientHandlers.get(0).inviaMessaggio(startMsg);
-                    
-                    LogUtility.info("[SERVER] Inviando START al giocatore 1");  
-                    clientHandlers.get(1).inviaMessaggio(startMsg);
-                    
-                    LogUtility.info("[SERVER] ✅ Messaggi START inviati a entrambi i giocatori");
+                    // Aspetta che entrambi i ClientHandler si inizializzino completamente
+                    new Thread(() -> {
+                        try {
+                            Thread.sleep(1000); // Aspetta 1 secondo per sicurezza
+                            
+                            LogUtility.info("[SERVER] Inizio fase posizionamento navi.");
+                            Messaggio startMsg = new Messaggio(Comando.START, "Inizia il posizionamento delle navi!");
+                            
+                            // Controlla che i client siano ancora connessi prima di inviare
+                            if (clientHandlers.get(0) != null && clientHandlers.get(0).isConnessioneAttiva()) {
+                                LogUtility.info("[SERVER] Inviando START al giocatore 0");
+                                clientHandlers.get(0).inviaMessaggio(startMsg);
+                            }
+                            
+                            if (clientHandlers.get(1) != null && clientHandlers.get(1).isConnessioneAttiva()) {
+                                LogUtility.info("[SERVER] Inviando START al giocatore 1");  
+                                clientHandlers.get(1).inviaMessaggio(startMsg);
+                            }
+                            
+                            LogUtility.info("[SERVER] ✅ Messaggi START inviati a entrambi i giocatori");
+                            
+                        } catch (InterruptedException e) {
+                            LogUtility.error("[SERVER] Errore durante l'attesa: " + e.getMessage());
+                        }
+                    }).start();
                 }
 
             } catch (IOException e) {

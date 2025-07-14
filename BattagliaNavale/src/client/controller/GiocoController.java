@@ -7,6 +7,7 @@ import shared.model.Posizione;
 import shared.model.RisultatoAttacco;
 import shared.protocol.Comando;
 import shared.protocol.Messaggio;
+import utility.AudioManager;
 import utility.LogUtility;
 import javafx.application.Platform;
 
@@ -25,6 +26,9 @@ public class GiocoController {
     // Network
     private final ClientSocket clientSocket;
     private boolean connesso;
+    
+    // Audio
+    private AudioManager audioManager;
     
     // Model - Stato del gioco
     private String nomeGiocatore;
@@ -49,6 +53,7 @@ public class GiocoController {
 
     private GiocoController() {
         clientSocket = ClientSocket.getInstance();
+        audioManager = AudioManager.getInstance();
         connesso = inizializzaConnessione();
         if (connesso) {
             avviaAscoltoServer();
@@ -149,6 +154,9 @@ public class GiocoController {
         startRicevuto = true;
         LogUtility.info("[CLIENT] ⭐ RICEVUTO START! ID=" + myPlayerID + " - Transizione a posizionamento navi");
         
+        // Audio per inizio partita
+        audioManager.riproduciNotifica();
+        
         // Callback per la transizione di schermata
         if (onStartCallback != null) {
             LogUtility.info("[CLIENT] Eseguendo callback START");
@@ -162,6 +170,11 @@ public class GiocoController {
         statoPartita = StatoPartita.BATTAGLIA;
         battagliaIniziata = true;
         LogUtility.info("[CLIENT] Inizio battaglia!");
+        
+        // Audio per inizio battaglia
+        audioManager.riproduciNotifica();
+        audioManager.avviaAmbiente(); // Suoni ambiente (onde del mare)
+        
         if (chatView != null) {
             chatView.mostraNotificaSistema("🌊 La battaglia è iniziata!");
         }
@@ -179,6 +192,10 @@ public class GiocoController {
 
     private void gestisciTurno(boolean turno) {
         this.mioTurno = turno;
+        
+        // Audio per inizio turno
+        audioManager.riproduciInizioTurno();
+        
         if (grigliaView != null) {
             grigliaView.aggiornaStatoGioco("È il tuo turno! Clicca sulla griglia avversario per attaccare.");
             grigliaView.attivaGrigliaAvversario(true);
@@ -200,6 +217,17 @@ public class GiocoController {
     }
 
     private void gestisciRisultatoAttacco(RisultatoAttacco risultato) {
+        // Audio basato sul risultato dell'attacco
+        if (risultato.isColpito()) {
+            if (risultato.isNaveAffondata()) {
+                audioManager.riproduciNaveAffondata();
+            } else {
+                audioManager.riproduciColpo();
+            }
+        } else {
+            audioManager.riproduciMancato();
+        }
+        
         if (grigliaView != null) {
             grigliaView.aggiornaCellaAvversario(risultato);
         }
@@ -207,6 +235,15 @@ public class GiocoController {
     }
 
     private void gestisciAttaccoRicevuto(RisultatoAttacco risultato) {
+        // Audio per attacco ricevuto (più discreto)
+        if (risultato.isColpito()) {
+            if (risultato.isNaveAffondata()) {
+                audioManager.riproduciNaveAffondata();
+            } else {
+                audioManager.riproduciColpo();
+            }
+        }
+        
         if (grigliaView != null) {
             grigliaView.aggiornaCellaPropria(risultato);
         }
@@ -214,6 +251,9 @@ public class GiocoController {
     }
 
     private void gestisciMessaggioChat(Object messaggioData) {
+        // Audio per messaggio chat
+        audioManager.riproduciMessaggioChat();
+        
         if (chatView != null && messaggioData instanceof ChatView.MessaggioChat) {
             chatView.riceviMessaggio((ChatView.MessaggioChat) messaggioData);
         }
@@ -225,6 +265,10 @@ public class GiocoController {
     private void gestisciVittoria(String messaggio) {
         statoPartita = StatoPartita.FINITA;
         LogUtility.info("[CLIENT] 🏆 VITTORIA! " + messaggio);
+        
+        // Audio vittoria
+        audioManager.riproduciVittoria();
+        audioManager.fermaAmbiente(); // Ferma suoni ambiente
         
         if (grigliaView != null) {
             grigliaView.gestisciVittoria(messaggio);
@@ -244,6 +288,10 @@ public class GiocoController {
     private void gestisciSconfitta(String messaggio) {
         statoPartita = StatoPartita.FINITA;
         LogUtility.info("[CLIENT] 💀 SCONFITTA: " + messaggio);
+        
+        // Audio sconfitta
+        audioManager.riproduciSconfitta();
+        audioManager.fermaAmbiente(); // Ferma suoni ambiente
         
         if (grigliaView != null) {
             grigliaView.gestisciSconfitta(messaggio);
@@ -362,6 +410,9 @@ public class GiocoController {
         // Salva le navi localmente per mostrarle nella griglia
         this.mieiNaviPosizionate = new ArrayList<>(navi);
         
+        // Audio per posizionamento flotta
+        audioManager.riproduciNotifica();
+        
         inviaMessaggio(new Messaggio(Comando.POSIZIONA_NAVI, navi));
         statoPartita = StatoPartita.ATTESA_BATTAGLIA;
         LogUtility.info("[CLIENT] Navi inviate al server - Totale: " + navi.size());
@@ -425,6 +476,10 @@ public class GiocoController {
     public void disconnetti() {
         LogUtility.info("[CLIENT] Iniziando disconnessione...");
         
+        // Ferma tutti i suoni
+        audioManager.fermaMusica();
+        audioManager.fermaAmbiente();
+        
         // Ferma il flag di connessione per interrompere i thread
         connesso = false;
         mioTurno = false;
@@ -472,6 +527,16 @@ public class GiocoController {
      */
     public boolean verificaConnessione() {
         return connesso && clientSocket != null && clientSocket.getOutputStream() != null;
+    }
+
+    /**
+     * Metodo per controllo volume dalle impostazioni
+     */
+    public void applicaImpostazioniAudio(double volume) {
+        if (audioManager != null) {
+            audioManager.setMasterVolume(volume / 100.0); // Converti da 0-100 a 0-1
+            LogUtility.info("[CLIENT] Volume audio impostato a: " + volume + "%");
+        }
     }
 
     // ================== GETTERS ==================

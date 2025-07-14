@@ -16,6 +16,7 @@ import javafx.scene.shape.Polygon;
 import javafx.stage.Stage;
 import shared.model.Posizione;
 import shared.model.TipoNave;
+import utility.AudioManager;
 import utility.LogUtility;
 
 import java.util.ArrayList;
@@ -46,17 +47,19 @@ public class PosizionamentoNaviView {
     private Label naveCorrenteLabel;
     private Label descrizioneLabel;
     
-    // *** NUOVE FUNZIONALITÀ ***
+    // Nuove funzionalità
     private boolean orientamentoOrizzontale = true; // Orientamento corrente (toggle con R)
     private Label orientamentoLabel; // Mostra orientamento corrente
     private Label suggerimentoLabel; // Suggerimenti dinamici
     private Button autoPosizionaButton; // Auto-posizionamento
     
     private GiocoController controller;
+    private AudioManager audioManager;
     private Stage primaryStage;
 
     public PosizionamentoNaviView() {
         this.controller = GiocoController.getInstance();
+        this.audioManager = AudioManager.getInstance();
         this.naviDaPosizionare = TipoNave.getNaviDaPosizionare();
         this.naveCorrente = naviDaPosizionare[0];
     }
@@ -80,11 +83,11 @@ public class PosizionamentoNaviView {
         descrizioneLabel = new Label(naveCorrente.getDescrizione());
         descrizioneLabel.setStyle("-fx-text-fill: #87CEEB; -fx-font-size: 14px; -fx-font-style: italic;");
 
-        // *** NUOVO: Orientamento corrente ***
+        // Orientamento corrente
         orientamentoLabel = new Label("🧭 Orientamento: " + (orientamentoOrizzontale ? "Orizzontale ↔️" : "Verticale ↕️"));
         orientamentoLabel.setStyle("-fx-text-fill: #FFD700; -fx-font-size: 16px; -fx-font-weight: bold;");
 
-        // *** NUOVO: Istruzioni aggiornate ***
+        // Istruzioni aggiornate
         VBox istruzioniBox = new VBox(5);
         istruzioniBox.setAlignment(Pos.CENTER);
         
@@ -99,7 +102,7 @@ public class PosizionamentoNaviView {
         
         istruzioniBox.getChildren().addAll(istruzioni1, istruzioni2, istruzioni3);
 
-        // *** NUOVO: Suggerimenti dinamici ***
+        // Suggerimenti dinamici
         suggerimentoLabel = new Label("💡 Posiziona le navi mantenendo spazio tra loro");
         suggerimentoLabel.setStyle("-fx-text-fill: #90EE90; -fx-font-size: 12px; -fx-font-style: italic;");
 
@@ -140,7 +143,7 @@ public class PosizionamentoNaviView {
 
         Scene scena = new Scene(root, 1200, 1000);
         
-        // *** NUOVO: Gestione tasti ***
+        // Gestione tasti
         scena.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.R) {
                 ruotaOrientamento();
@@ -161,7 +164,7 @@ public class PosizionamentoNaviView {
         return scena;
     }
 
-    // *** NUOVO: Crea griglia con coordinate A-J, 1-10 ***
+    // Crea griglia con coordinate A-J, 1-10
     private VBox creaGrigliaConCoordinate() {
         VBox container = new VBox(5);
         container.setAlignment(Pos.CENTER);
@@ -209,7 +212,7 @@ public class PosizionamentoNaviView {
         return container;
     }
 
-    // *** NUOVO: Ruota orientamento con R ***
+    // Ruota orientamento con R
     private void ruotaOrientamento() {
         orientamentoOrizzontale = !orientamentoOrizzontale;
         orientamentoLabel.setText("🧭 Orientamento: " + (orientamentoOrizzontale ? "Orizzontale ↔️" : "Verticale ↕️"));
@@ -217,6 +220,9 @@ public class PosizionamentoNaviView {
         // Aggiorna il suggerimento
         suggerimentoLabel.setText("💡 Orientamento ruotato! " + (orientamentoOrizzontale ? "↔️ Orizzontale" : "↕️ Verticale"));
         suggerimentoLabel.setStyle("-fx-text-fill: #90EE90; -fx-font-size: 12px; -fx-font-style: italic;");
+        
+        // Audio per rotazione
+        audioManager.riproduciClickBottone();
         
         LogUtility.info("[POSIZIONAMENTO] 🔄 Orientamento ruotato: " + (orientamentoOrizzontale ? "Orizzontale" : "Verticale"));
     }
@@ -257,21 +263,30 @@ public class PosizionamentoNaviView {
 
         Button resetButton = new Button("🔄 Reset Tutto");
         resetButton.setStyle("-fx-font-size: 14px; -fx-padding: 8px 16px; -fx-background-color: #FF5722; -fx-text-fill: white;");
-        resetButton.setOnAction(e -> resetGriglia());
+        resetButton.setOnAction(e -> {
+            audioManager.riproduciClickBottone();
+            resetGriglia();
+        });
 
         Button resetNaveButton = new Button("↶ Reset Nave Corrente");
         resetNaveButton.setStyle("-fx-font-size: 14px; -fx-padding: 8px 16px; -fx-background-color: #FF9800; -fx-text-fill: white;");
-        resetNaveButton.setOnAction(e -> resetNaveCorrente());
+        resetNaveButton.setOnAction(e -> {
+            audioManager.riproduciClickBottone();
+            resetNaveCorrente();
+        });
 
-        // *** NUOVO: Auto-posizionamento ***
         autoPosizionaButton = new Button("🎲 Auto-Posiziona");
         autoPosizionaButton.setStyle("-fx-font-size: 14px; -fx-padding: 8px 16px; -fx-background-color: #9C27B0; -fx-text-fill: white;");
-        autoPosizionaButton.setOnAction(e -> autoPosizionaNavi());
+        autoPosizionaButton.setOnAction(e -> {
+            audioManager.riproduciClickBottone();
+            autoPosizionaNavi();
+        });
 
         confermaButton = new Button("✅ Conferma Flotta");
         confermaButton.setStyle("-fx-font-size: 16px; -fx-padding: 10px 20px; -fx-background-color: #4CAF50; -fx-text-fill: white;");
         confermaButton.setDisable(true);
         confermaButton.setOnAction(e -> {
+            audioManager.riproduciNotifica();
             inviaNaviAlController();
             mostraAttesaAvversario();
         });
@@ -309,14 +324,14 @@ public class PosizionamentoNaviView {
                 
                 cella.getChildren().add(sfondo);
 
-                // *** AGGIORNATO: Usa orientamento corrente ***
+                // Usa orientamento corrente
                 cella.setOnMouseClicked(event -> {
                     if (indiceNaveCorrente < naviDaPosizionare.length) {
                         posizionaNave(riga, colonna, orientamentoOrizzontale);
                     }
                 });
 
-                // *** NUOVO: Preview con freccia direzionale ***
+                // Preview con freccia direzionale
                 cella.setOnMouseEntered(e -> {
                     if (indiceNaveCorrente < naviDaPosizionare.length && 
                         !naviOccupate.contains(new Posizione(riga, colonna))) {
@@ -336,7 +351,7 @@ public class PosizionamentoNaviView {
         return grid;
     }
 
-    // *** NUOVO: Preview con freccia direzionale ***
+    // Preview con freccia direzionale
     private void mostraPreviewNaveConOrientamento(int riga, int colonna, boolean orizzontale) {
         rimuoviPreview();
         
@@ -372,7 +387,7 @@ public class PosizionamentoNaviView {
                 if (posizionamentoValido) {
                     sfondo.setFill(Color.LIGHTYELLOW);
                     
-                    // *** NUOVO: Aggiungi freccia direzionale ***
+                    // Aggiungi freccia direzionale
                     if (i == 0) { // Prima cella - aggiungi freccia
                         Polygon freccia = creaFrecciaOrientamento(orizzontale);
                         cella.getChildren().add(freccia);
@@ -383,7 +398,7 @@ public class PosizionamentoNaviView {
             }
         }
         
-        // *** NUOVO: Aggiorna suggerimento in tempo reale ***
+        // Aggiorna suggerimento in tempo reale
         if (!posizionamentoValido) {
             if (!rispettaLimiti(riga, colonna, orizzontale, lunghezza)) {
                 suggerimentoLabel.setText("⚠️ Nave fuori dai limiti della griglia!");
@@ -397,7 +412,7 @@ public class PosizionamentoNaviView {
         }
     }
 
-    // *** NUOVO: Crea freccia direzionale ***
+    // Crea freccia direzionale
     private Polygon creaFrecciaOrientamento(boolean orizzontale) {
         Polygon freccia = new Polygon();
         
@@ -425,7 +440,7 @@ public class PosizionamentoNaviView {
         return freccia;
     }
 
-    // *** NUOVO: Controllo spaziatura navi ***
+    // Controllo spaziatura navi
     private boolean rispettaSpaziatura(Posizione pos) {
         // Controlla tutte le 8 direzioni adiacenti
         for (int deltaRiga = -1; deltaRiga <= 1; deltaRiga++) {
@@ -446,7 +461,7 @@ public class PosizionamentoNaviView {
         return true;
     }
 
-    // *** NUOVO: Controllo limiti griglia ***
+    // Controllo limiti griglia
     private boolean rispettaLimiti(int riga, int colonna, boolean orizzontale, int lunghezza) {
         for (int i = 0; i < lunghezza; i++) {
             int nuovaRiga = orizzontale ? riga : riga + i;
@@ -459,7 +474,7 @@ public class PosizionamentoNaviView {
         return true;
     }
 
-    // *** NUOVO: Auto-posizionamento ***
+    // Auto-posizionamento
     private void autoPosizionaNavi() {
         resetGriglia(); // Reset prima di auto-posizionare
         
@@ -500,11 +515,14 @@ public class PosizionamentoNaviView {
         aggiornaListaNavi();
         aggiornaDescrizioneNaveCorrente();
         
+        // Audio per auto-posizionamento
+        audioManager.riproduciNotifica();
+        
         suggerimentoLabel.setText("🎲 Flotta posizionata automaticamente!");
         suggerimentoLabel.setStyle("-fx-text-fill: #9C27B0; -fx-font-size: 12px; -fx-font-style: italic;");
     }
 
-    // *** NUOVO: Validazione posizionamento con spaziatura ***
+    // Validazione posizionamento con spaziatura
     private boolean posizionamentoValido(int riga, int colonna, boolean orizzontale, int lunghezza) {
         // Controlla limiti
         if (!rispettaLimiti(riga, colonna, orizzontale, lunghezza)) {
@@ -546,11 +564,11 @@ public class PosizionamentoNaviView {
         suggerimentoLabel.setStyle("-fx-text-fill: #90EE90; -fx-font-size: 12px; -fx-font-style: italic;");
     }
 
-    // *** AGGIORNATO: Posizionamento con validazione spaziatura ***
+    // Posizionamento con validazione spaziatura
     private void posizionaNave(int riga, int colonna, boolean orizzontale) {
         int lunghezza = naveCorrente.getLunghezza();
         
-        // *** NUOVO: Validazione completa ***
+        // Validazione completa
         if (!posizionamentoValido(riga, colonna, orizzontale, lunghezza)) {
             if (!rispettaLimiti(riga, colonna, orizzontale, lunghezza)) {
                 mostraErrore("⚠️ " + naveCorrente.getNome() + " fuori dai limiti della griglia!");
@@ -571,6 +589,9 @@ public class PosizionamentoNaviView {
         naviOccupate.addAll(posizioniNave);
         
         visualizzaNaveGrafica(posizioniNave, naveCorrente, orizzontale);
+        
+        // Audio per posizionamento nave
+        audioManager.riproduciPosizionamentoNave();
         
         indiceNaveCorrente++;
         if (indiceNaveCorrente < naviDaPosizionare.length) {
@@ -694,6 +715,9 @@ public class PosizionamentoNaviView {
         suggerimentoLabel.setText("💡 Posiziona le navi mantenendo spazio tra loro");
         suggerimentoLabel.setStyle("-fx-text-fill: #90EE90; -fx-font-size: 12px; -fx-font-style: italic;");
         
+        // Audio per reset
+        audioManager.riproduciClickBottone();
+        
         aggiornaDescrizioneNaveCorrente();
         aggiornaStato();
         aggiornaListaNavi();
@@ -719,6 +743,9 @@ public class PosizionamentoNaviView {
             confermaButton.setDisable(true);
             suggerimentoLabel.setText("↶ Nave rimossa! Torno a: " + naveCorrente.getNome());
             suggerimentoLabel.setStyle("-fx-text-fill: #FF9800; -fx-font-size: 12px; -fx-font-style: italic;");
+            
+            // Audio per reset nave
+            audioManager.riproduciClickBottone();
             
             aggiornaDescrizioneNaveCorrente();
             aggiornaStato();
