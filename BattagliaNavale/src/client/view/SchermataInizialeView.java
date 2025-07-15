@@ -24,7 +24,7 @@ public class SchermataInizialeView extends Application {
 
     private static MediaPlayer mediaPlayer;
     private static boolean musicaInRiproduzione = false;
-    private StackPane root; // usato per applicare la luminosità
+    private StackPane root;
 
     @Override
     public void start(Stage primaryStage) {
@@ -80,10 +80,8 @@ public class SchermataInizialeView extends Application {
         Scene scene = new Scene(root, 1920, 1080);
         scene.getStylesheets().add(getClass().getResource("/warstyle.css").toExternalForm());
 
-        // Applica volume e luminosità dalle impostazioni salvate
         Impostazioni impostazioni = ImpostazioniManager.caricaImpostazioni();
         if (impostazioni != null) {
-            // Volume
             if (mediaPlayer == null) {
                 Media sound = new Media(new File("resources/audio_battaglia.mp3").toURI().toString());
                 mediaPlayer = new MediaPlayer(sound);
@@ -91,7 +89,6 @@ public class SchermataInizialeView extends Application {
             }
             mediaPlayer.setVolume(impostazioni.getVolume() / 100.0);
 
-            // Luminosità
             applicaLuminosita(impostazioni.getLuminosita());
         }
 
@@ -107,7 +104,7 @@ public class SchermataInizialeView extends Application {
     }
 
     private void applicaLuminosita(double percentuale) {
-        double brightness = (percentuale - 50) / 50.0; // da -1 a +1
+        double brightness = (percentuale - 50) / 50.0;
         ColorAdjust regolazione = new ColorAdjust();
         regolazione.setBrightness(brightness);
         root.setEffect(regolazione);
@@ -115,13 +112,12 @@ public class SchermataInizialeView extends Application {
 
     @SuppressWarnings("deprecation")
 	private void apriGioco(Stage primaryStage) {
-        // Crea il ServerGameManager con righe e colonne
         int righe = 10;
         int colonne = 10;
-        ServerGameManager gameManager = new ServerGameManager(righe, colonne); // Passaggio dei parametri
+        ServerGameManager gameManager = new ServerGameManager(righe, colonne);
 
-        GiocoView.setGameManager(gameManager); // ✅ Imposta prima
-        GiocoView giocoView = new GiocoView(); // ✅ Nessun argomento
+        GiocoView.setGameManager(gameManager);
+        GiocoView giocoView = new GiocoView();
         
         try {
             giocoView.start(primaryStage);

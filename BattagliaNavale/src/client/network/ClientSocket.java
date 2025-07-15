@@ -28,9 +28,9 @@ public class ClientSocket {
  // Connessione al server
     public void connect(String host, int port) throws IOException {
         socket = new Socket(host, port);
-        out = new ObjectOutputStream(socket.getOutputStream()); // <-- PRIMA l'output ✅
+        out = new ObjectOutputStream(socket.getOutputStream()); //Prima output
         out.flush();
-        in = new ObjectInputStream(socket.getInputStream());    // <-- POI l'input ✅
+        in = new ObjectInputStream(socket.getInputStream()); //Poi input
         LogUtility.info("[CLIENT] Connesso al server su " + host + ":" + port);
     }
 
@@ -84,7 +84,7 @@ public class ClientSocket {
                 out.flush();
             }
 
-            // Ora chiudi gli stream e socket
+            //Chiusura stream e socket
             if (in != null) in.close();
             if (out != null) out.close();
             if (socket != null) socket.close();

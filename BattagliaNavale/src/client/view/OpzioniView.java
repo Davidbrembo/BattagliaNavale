@@ -30,47 +30,44 @@ public class OpzioniView {
         // Titolo
         Label titolo = new Label("OPZIONI");
         titolo.getStyleClass().add("titolo");
-        titolo.setTranslateY(-80);  // Sposta il titolo verso l'alto di 50 pixel
+        titolo.setTranslateY(-80);
 
         // Slider volume
         Label volumeLabel = new Label("Volume");
         volumeLabel.getStyleClass().add("impostazione-label");
         Slider volumeSlider = new Slider(0, 100, 25);
-        volumeSlider.setPrefWidth(300);  // Imposta la larghezza preferita per il volume
-        volumeSlider.setMaxWidth(300);   // Forza la larghezza massima dello slider
+        volumeSlider.setPrefWidth(300);
+        volumeSlider.setMaxWidth(300);
 
         // Slider luminosità
         Label luminositaLabel = new Label("Luminosità");
         luminositaLabel.getStyleClass().add("impostazione-label");
         Slider luminositaSlider = new Slider(30, 60, 45);
-        luminositaSlider.setPrefWidth(300);  // Imposta la larghezza preferita per la luminosità
-        luminositaSlider.setMaxWidth(300);   // Forza la larghezza massima dello slider
+        luminositaSlider.setPrefWidth(300);
+        luminositaSlider.setMaxWidth(300);
 
-        // Aggiungere il quadrato sfocato dietro gli slider
-        Rectangle backgroundRectangle = new Rectangle(350, 180);  // Aumentato per coprire tutti gli slider e i label
-        backgroundRectangle.setArcWidth(20);  // Angoli arrotondati
+        Rectangle backgroundRectangle = new Rectangle(350, 180);
+        backgroundRectangle.setArcWidth(20);
         backgroundRectangle.setArcHeight(20);
-        backgroundRectangle.setFill(Color.rgb(0, 0, 0, 0.8));  // Colore scuro semi-trasparente
+        backgroundRectangle.setFill(Color.rgb(0, 0, 0, 0.8));
 
-        // Aggiungere un offset verticale per spostare il rettangolo più in basso
-        backgroundRectangle.setTranslateY(20);  // Sposta il rettangolo verso il basso di 50 pixel
+        backgroundRectangle.setTranslateY(20);
 
         // Pulsanti
         Button applicaButton = new Button("Applica");
         Button resetButton = new Button("Reset");
         Button tornaButton = new Button("Torna al Menu");
         
-        applicaButton.setTranslateY(30);  // Sposta il pulsante "Applica" verso il basso di 20 pixel
-        resetButton.setTranslateY(30);    // Sposta il pulsante "Reset" verso il basso di 20 pixel
-        tornaButton.setTranslateY(30);    // Sposta il pulsante "Torna al Menu" verso il basso di 20 pixel
-
+        applicaButton.setTranslateY(30);
+        resetButton.setTranslateY(30);
+        tornaButton.setTranslateY(30);
+        
         Button[] buttons = {applicaButton, resetButton, tornaButton};
         for (Button btn : buttons) {
             btn.getStyleClass().add("button");
             applyPulseEffect(btn);
         }
 
-        // Pulsante Applica
         applicaButton.setOnAction(e -> {
             Impostazioni impostazioni = new Impostazioni();
             impostazioni.setVolume(volumeSlider.getValue());
@@ -78,7 +75,6 @@ public class OpzioniView {
 
             ImpostazioniManager.salvaImpostazioni(impostazioni);
 
-            // Imposta il volume nel MediaPlayer
             if (SchermataInizialeView.getMediaPlayer() != null) {
                 SchermataInizialeView.getMediaPlayer().setVolume(impostazioni.getVolume() / 100.0);
             }
@@ -119,11 +115,9 @@ public class OpzioniView {
             }
         });
 
-        // Creare un HBox per i pulsanti "Applica" e "Reset" uno accanto all'altro
         HBox hboxButtons = new HBox(15, applicaButton, resetButton);
         hboxButtons.setAlignment(Pos.CENTER);
 
-        // Impostiamo un VBox per gestire gli spazi tra i componenti
         VBox vbox = new VBox(15, titolo,
                 volumeLabel, volumeSlider,
                 luminositaLabel, luminositaSlider,
@@ -132,18 +126,14 @@ public class OpzioniView {
         vbox.setAlignment(Pos.CENTER);
         vbox.setPadding(new Insets(20));
 
-        // Posizioniamo il quadrato sfocato dietro gli slider
         StackPane stackSlider = new StackPane();
         stackSlider.getChildren().addAll(backgroundRectangle, vbox);
 
-        // Creiamo lo StackPane con il background
         root = new StackPane();
         root.getChildren().addAll(backgroundImageView, stackSlider);
 
-        // Carica le impostazioni salvate
         caricaImpostazioni(volumeSlider, luminositaSlider);
 
-        // Crea la scena
         Scene scene = new Scene(root, 1920, 1080);
         try {
             scene.getStylesheets().add(getClass().getResource("/warstyle.css").toExternalForm());
@@ -177,7 +167,6 @@ public class OpzioniView {
                 volumeSlider.setValue(impostazioni.getVolume());
                 luminositaSlider.setValue(impostazioni.getLuminosita());
 
-                // Imposta subito volume e luminosità
                 if (SchermataInizialeView.getMediaPlayer() != null) {
                     SchermataInizialeView.getMediaPlayer().setVolume(impostazioni.getVolume() / 100.0);
                 }
@@ -188,7 +177,7 @@ public class OpzioniView {
     }
 
     private void applicaLuminosita(double percentuale) {
-        double brightness = (percentuale - 50) / 50.0; // da -1 a +1
+        double brightness = (percentuale - 50) / 50.0;
         ColorAdjust regolazione = new ColorAdjust();
         regolazione.setBrightness(brightness);
         root.setEffect(regolazione);

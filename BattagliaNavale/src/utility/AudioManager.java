@@ -7,22 +7,17 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Gestisce tutti i suoni del gioco - ambiente, notifiche ed effetti
- * VERSIONE COMPLETA INTEGRATA
- */
 public class AudioManager {
     
     private static AudioManager instance;
     private Map<String, MediaPlayer> players = new HashMap<>();
-    private MediaPlayer ambientPlayer; // Suoni di ambiente continui
-    private MediaPlayer musicPlayer;   // Musica di background
+    private MediaPlayer ambientPlayer;
+    private MediaPlayer musicPlayer;
     private boolean audioEnabled = true;
     private double masterVolume = 0.5;
     private double effectsVolume = 0.7;
     private double musicVolume = 0.3;
     
-    // Percorsi dei file audio
     private static final String AUDIO_PATH = "resources/";
     
     private AudioManager() {
@@ -38,13 +33,11 @@ public class AudioManager {
     
     private void inizializzaAudio() {
         try {
-            // Crea directory audio se non esiste
             File audioDir = new File("resources");
             if (!audioDir.exists()) {
                 audioDir.mkdirs();
             }
             
-            // Inizializza i suoni
             inizializzaSuoni();
             
             LogUtility.info("[AUDIO] AudioManager inizializzato con " + players.size() + " suoni");
@@ -55,10 +48,8 @@ public class AudioManager {
     }
     
     private void inizializzaSuoni() {
-        // Musica di background (se esiste)
         caricaMusica("audio_battaglia.mp3");
         
-        // Effetti sonori - prova prima .wav poi .mp3
         caricaEffetto("hit", "Suono colpo riuscito");
         caricaEffetto("miss", "Suono colpo mancato"); 
         caricaEffetto("sunk", "Suono nave affondata");
@@ -70,13 +61,11 @@ public class AudioManager {
         caricaEffetto("turn_start", "Suono inizio turno");
         caricaEffetto("chat_message", "Suono messaggio chat");
         
-        // Suoni ambiente
         caricaAmbiente("waves", "Suono onde del mare");
     }
     
     private void caricaEffetto(String nome, String descrizione) {
         try {
-            // Prova prima .wav (creato da AudioFileCreator), poi .mp3
             File audioFileWav = new File(AUDIO_PATH + nome + ".wav");
             File audioFileMp3 = new File(AUDIO_PATH + nome + ".mp3");
             
@@ -117,7 +106,7 @@ public class AudioManager {
             if (audioFile != null) {
                 Media media = new Media(audioFile.toURI().toString());
                 MediaPlayer player = new MediaPlayer(media);
-                player.setVolume(musicVolume * 0.6); // Più basso della musica
+                player.setVolume(musicVolume * 0.6);
                 player.setCycleCount(MediaPlayer.INDEFINITE);
                 ambientPlayer = player;
                 players.put(nome, player);
@@ -148,70 +137,14 @@ public class AudioManager {
         }
     }
     
-    private void caricaOCreaEffetto(String nome, String descrizione) {
-        try {
-            // Prova prima a caricare un file esistente
-            File audioFile = new File(AUDIO_PATH + nome + ".mp3");
-            
-            if (audioFile.exists()) {
-                Media media = new Media(audioFile.toURI().toString());
-                MediaPlayer player = new MediaPlayer(media);
-                player.setVolume(effectsVolume);
-                players.put(nome, player);
-                LogUtility.info("[AUDIO] Effetto caricato: " + nome + ".mp3");
-            } else {
-                // Crea un effetto sonoro programmatico semplice
-                MediaPlayer player = creaEffettoSintetico(nome);
-                if (player != null) {
-                    players.put(nome, player);
-                    LogUtility.info("[AUDIO] Effetto sintetico creato: " + nome);
-                }
-            }
-            
-        } catch (Exception e) {
-            LogUtility.warning("[AUDIO] Errore caricamento effetto '" + nome + "': " + e.getMessage());
-        }
-    }
-    
-    private void caricaOCreaAmbiente(String nome, String descrizione) {
-        try {
-            File audioFile = new File(AUDIO_PATH + nome + ".mp3");
-            
-            if (audioFile.exists()) {
-                Media media = new Media(audioFile.toURI().toString());
-                MediaPlayer player = new MediaPlayer(media);
-                player.setVolume(musicVolume * 0.6); // Più basso della musica
-                player.setCycleCount(MediaPlayer.INDEFINITE);
-                ambientPlayer = player;
-                players.put(nome, player);
-                LogUtility.info("[AUDIO] Ambiente caricato: " + nome + ".mp3");
-            }
-            
-        } catch (Exception e) {
-            LogUtility.warning("[AUDIO] Errore caricamento ambiente: " + e.getMessage());
-        }
-    }
-    
-    // Crea effetti sonori sintetici semplici (placeholder)
-    private MediaPlayer creaEffettoSintetico(String tipo) {
-        // Per ora ritorna null - in una implementazione completa 
-        // si potrebbero generare toni sintetici
-        return null;
-    }
-    
-    // ================== METODI PUBBLICI ==================
-    
-    /**
-     * Riproduce un effetto sonoro
-     */
     public void riproduciEffetto(String nome) {
         if (!audioEnabled) return;
         
         MediaPlayer player = players.get(nome);
         if (player != null) {
             try {
-                player.stop(); // Ferma se già in riproduzione
-                player.seek(Duration.ZERO); // Torna all'inizio
+                player.stop();
+                player.seek(Duration.ZERO);
                 player.play();
                 LogUtility.info("[AUDIO] Riprodotto effetto: " + nome);
             } catch (Exception e) {
@@ -222,9 +155,6 @@ public class AudioManager {
         }
     }
     
-    /**
-     * Metodi specifici per eventi di gioco
-     */
     public void riproduciColpo() {
         riproduciEffetto("hit");
     }
@@ -265,9 +195,6 @@ public class AudioManager {
         riproduciEffetto("chat_message");
     }
     
-    /**
-     * Gestione musica di background
-     */
     public void avviaMusica() {
         if (!audioEnabled || musicPlayer == null) return;
         
@@ -301,9 +228,6 @@ public class AudioManager {
         }
     }
     
-    /**
-     * Gestione suoni ambiente
-     */
     public void avviaAmbiente() {
         if (!audioEnabled || ambientPlayer == null) return;
         
@@ -326,13 +250,9 @@ public class AudioManager {
         }
     }
     
-    /**
-     * Controllo volume
-     */
     public void setMasterVolume(double volume) {
         this.masterVolume = Math.max(0, Math.min(1, volume));
         
-        // Applica a tutti i player attivi
         if (musicPlayer != null) {
             musicPlayer.setVolume(this.masterVolume * musicVolume);
         }
@@ -372,9 +292,6 @@ public class AudioManager {
         }
     }
     
-    /**
-     * Controllo generale
-     */
     public void abilitaAudio(boolean enabled) {
         this.audioEnabled = enabled;
         
@@ -385,7 +302,7 @@ public class AudioManager {
                 try {
                     player.stop();
                 } catch (Exception e) {
-                    // Ignora errori di stop
+                	LogUtility.warning("[AUDIO] Errore stop player '" + player.getMedia().getSource() + "': " + e.getMessage());
                 }
             }
         }
@@ -401,9 +318,6 @@ public class AudioManager {
         return masterVolume;
     }
     
-    /**
-     * Cleanup quando l'applicazione si chiude
-     */
     public void cleanup() {
         LogUtility.info("[AUDIO] Cleanup AudioManager...");
         
@@ -415,7 +329,7 @@ public class AudioManager {
                 player.stop();
                 player.dispose();
             } catch (Exception e) {
-                // Ignora errori di cleanup
+            	LogUtility.warning("[AUDIO] Errore durante lo stop/disposal del player '" + player.getMedia().getSource() + "': " + e.getMessage());
             }
         }
         

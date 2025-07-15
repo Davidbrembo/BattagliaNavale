@@ -14,9 +14,6 @@ import utility.LogUtility;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
-/**
- * View responsabile della chat con emoji predefinite e miglioramenti
- */
 public class ChatView {
     
     private VBox chatContainer;
@@ -25,10 +22,9 @@ public class ChatView {
     private TextField chatInput;
     private Button sendButton;
     private GiocoController controller;
-    private FlowPane emojiPanel; // *** NUOVO: Pannello emoji ***
+    private FlowPane emojiPanel;
     private boolean emojiPanelVisible = false;
-    
-    // *** NUOVO: Emoji predefinite ***
+
     private final String[] EMOJI_PREDEFINITE = {
         "😄", "😊", "😎", "🤔", "😮", "😅", "🙄", "😤",
         "👍", "👎", "👌", "✌️", "🤝", "👋", "🙏", "💪",
@@ -39,21 +35,20 @@ public class ChatView {
     public ChatView() {
         this.controller = GiocoController.getInstance();
         inizializzaChat();
-        
-        // Registra questa view nel controller
+
         controller.registraChatView(this);
     }
     
     private void inizializzaChat() {
         chatContainer = new VBox(10);
-        chatContainer.setPrefWidth(320); // Leggermente più larga per emoji
+        chatContainer.setPrefWidth(320);
         chatContainer.setMaxWidth(320);
         chatContainer.setStyle("-fx-background-color: #2b2b2b; -fx-border-color: #444444; " +
                               "-fx-border-width: 1px; -fx-padding: 10px; -fx-background-radius: 5px; " +
                               "-fx-border-radius: 5px;");
         
         // Titolo della chat
-        Label chatTitle = new Label("💬 Chat");
+        Label chatTitle = new Label("Chat");
         chatTitle.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;");
         
         // Area messaggi
@@ -66,8 +61,7 @@ public class ChatView {
         chatScrollPane.setStyle("-fx-background: #1e1e1e; -fx-background-color: #1e1e1e;");
         chatScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         chatScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        
-        // *** NUOVO: Pannello emoji ***
+
         emojiPanel = creaEmojiPanel();
         emojiPanel.setVisible(false);
         emojiPanel.setManaged(false);
@@ -82,8 +76,7 @@ public class ChatView {
                           "-fx-border-color: #555555; -fx-border-radius: 3px; " +
                           "-fx-background-radius: 3px;");
         HBox.setHgrow(chatInput, Priority.ALWAYS);
-        
-        // *** NUOVO: Bottone emoji ***
+
         Button emojiButton = new Button("😊");
         emojiButton.setStyle("-fx-background-color: #FF9800; -fx-text-fill: white; " +
                             "-fx-border-radius: 3px; -fx-background-radius: 3px; " +
@@ -106,10 +99,9 @@ public class ChatView {
         chatContainer.getChildren().addAll(chatTitle, chatScrollPane, emojiPanel, chatInputContainer);
         
         // Messaggio di benvenuto
-        mostraNotificaSistema("Chat attivata! 💬 Usa le emoji per comunicare!");
+        mostraNotificaSistema("Chat attivata! Usa le emoji per comunicare!");
     }
-    
-    // *** NUOVO: Crea pannello emoji ***
+
     private FlowPane creaEmojiPanel() {
         FlowPane panel = new FlowPane();
         panel.setHgap(5);
@@ -150,8 +142,7 @@ public class ChatView {
         
         return panel;
     }
-    
-    // *** NUOVO: Toggle pannello emoji ***
+
     private void toggleEmojiPanel() {
         emojiPanelVisible = !emojiPanelVisible;
         emojiPanel.setVisible(emojiPanelVisible);
@@ -164,11 +155,9 @@ public class ChatView {
         return chatContainer;
     }
     
-    // ================== USER INTERACTIONS ==================
+    //Interazioni con l'utente
     
-    /**
-     * Gestisce l'invio di un messaggio delegando al Controller
-     */
+    //Gestisce l'invio di un messaggio delegando al Controller
     private void inviaMessaggio() {
         String testo = chatInput.getText().trim();
         if (testo.isEmpty()) {
@@ -192,57 +181,50 @@ public class ChatView {
         LogUtility.info("[CHAT] Messaggio inviato: " + testo);
     }
     
-    // ================== PUBLIC INTERFACE - Chiamate dal Controller ==================
+    //Public inteterface - Chiamate dal Controller
     
-    /**
-     * Riceve un messaggio dall'altro giocatore (chiamato dal Controller)
-     */
+    //Riceve un messaggio dall'altro giocatore
     public void riceviMessaggio(MessaggioChat messaggio) {
         Platform.runLater(() -> {
             aggiungiMessaggioRicevuto(messaggio.getMittente(), messaggio.getTesto());
         });
     }
     
-    /**
-     * Mostra una notifica di sistema (chiamato dal Controller)
-     */
+    
+    //Mostra una notifica di sistema
     public void mostraNotificaSistema(String testo) {
         Platform.runLater(() -> aggiungiMessaggioSistema(testo));
     }
     
-    /**
-     * Mostra notifica del turno (chiamato dal Controller)
-     */
+    //Mostra notifiche del turno
     public void mostraNotificaTurno(boolean mioTurno) {
         if (mioTurno) {
-            mostraNotificaSistema("⚡ È il tuo turno! 🎯");
+            mostraNotificaSistema("È il tuo turno!");
         } else {
-            mostraNotificaSistema("⏳ Turno dell'avversario...");
+            mostraNotificaSistema("Turno dell'avversario...");
         }
     }
     
-    /**
-     * Notifica connessione giocatore (chiamato dal Controller)
-     */
+
+    //Notifica connessione giocatore
     public void mostraNotificaGiocatoreConnesso(String nomeGiocatore) {
-        mostraNotificaSistema("👋 " + nomeGiocatore + " si è unito alla battaglia!");
+        mostraNotificaSistema(nomeGiocatore + " si è unito alla battaglia!");
     }
     
-    /**
-     * Notifica disconnessione giocatore (chiamato dal Controller)
-     */
+    
+    //Notifica disconnessione giocatore (chiamato dal Controller)     
     public void mostraNotificaGiocatoreDisconnesso(String nomeGiocatore) {
-        mostraNotificaSistema("👋 " + nomeGiocatore + " ha abbandonato la battaglia.");
+        mostraNotificaSistema(nomeGiocatore + " ha abbandonato la battaglia.");
     }
     
-    // *** NUOVO: Notifiche specifiche per battaglia navale ***
+    //Notifiche specifiche per battaglia navale
     public void mostraNotificaColpo(boolean colpito, boolean affondato) {
         if (affondato) {
-            mostraNotificaSistema("💥🚢 NAVE AFFONDATA! Colpo devastante!");
+            mostraNotificaSistema("NAVE AFFONDATA! Colpo devastante!");
         } else if (colpito) {
-            mostraNotificaSistema("🎯 COLPITO! Bel tiro!");
+            mostraNotificaSistema("COLPITO! Bel tiro!");
         } else {
-            mostraNotificaSistema("🌊 MANCATO... Riprova!");
+            mostraNotificaSistema("MANCATO... Riprova!");
         }
     }
     
@@ -254,7 +236,7 @@ public class ChatView {
         mostraNotificaSistema("💀⚓ Sei stato sconfitto... ⚓💀");
     }
     
-    // ================== PRIVATE UI METHODS ==================
+    //Private UI methods
     
     private void aggiungiMessaggioPropio(String testo) {
         String timestamp = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
@@ -325,11 +307,8 @@ public class ChatView {
         });
     }
     
-    // ================== INNER CLASS ==================
-    
-    /**
-     * Classe per rappresentare un messaggio di chat
-     */
+    //Inner class per i messaggi di chat
+
     public static class MessaggioChat implements java.io.Serializable {
         private static final long serialVersionUID = 1L;
         private String mittente;

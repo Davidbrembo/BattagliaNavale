@@ -12,13 +12,8 @@ import javafx.stage.Stage;
 import utility.Impostazioni;
 import utility.ImpostazioniManager;
 import utility.LogUtility;
-
 import java.util.Optional;
 
-/**
- * View per l'inserimento del nome giocatore.
- * Segue il pattern MVC delegando la logica al Controller.
- */
 public class GiocoView extends Application {
 
     private GiocoController controller;
@@ -55,7 +50,7 @@ public class GiocoView extends Application {
         Label nomeLabel = new Label();
         nomeLabel.setStyle("-fx-font-size: 24px; -fx-text-fill: white;");
 
-        // Gestione eventi - delegata al Controller
+        // Gestione eventi
         confermaButton.setOnAction(e -> {
             String nome = nomeField.getText().trim();
             if (nome.isEmpty()) {
@@ -63,7 +58,6 @@ public class GiocoView extends Application {
             } else {
                 erroreLabel.setText("");
                 
-                // Delega al Controller l'impostazione del nome
                 controller.impostaNomeGiocatore(nome);
 
                 nomeLabel.setText("Giocatore: " + nome);
@@ -89,14 +83,14 @@ public class GiocoView extends Application {
         primaryStage.setResizable(true);
         primaryStage.centerOnScreen();
 
-        // *** AGGIORNATO: Gestione chiusura finestra migliorata ***
+        //Gestione chiusura finestra migliorata ***
         primaryStage.setOnCloseRequest(event -> {
             LogUtility.info("[GIOCO] Richiesta chiusura finestra - disconnettendo dal server...");
             
-            // Previeni la chiusura immediata
+            //Previeni la chiusura immediata
             event.consume();
             
-            // Mostra dialog di conferma
+            //Mostra dialog di conferma
             Alert confermaChiusura = new Alert(Alert.AlertType.CONFIRMATION);
             confermaChiusura.setTitle("Conferma Uscita");
             confermaChiusura.setHeaderText("Sei sicuro di voler uscire?");
@@ -121,7 +115,7 @@ public class GiocoView extends Application {
                     LogUtility.error("[GIOCO] Errore durante disconnessione: " + e.getMessage());
                 }
                 
-                // Ora chiudi l'applicazione
+                //Ora chiudi l'applicazione
                 Platform.exit();
                 System.exit(0);
             } else {
@@ -164,7 +158,7 @@ public class GiocoView extends Application {
         Button ritentaButton = new Button("Riprova");
         ritentaButton.setStyle("-fx-font-size: 16px; -fx-padding: 10px;");
         ritentaButton.setOnAction(e -> {
-            // Ricrea il controller per ritentare la connessione
+            //Ricrea il controller per ritentare la connessione
             start(primaryStage);
         });
 
@@ -177,11 +171,11 @@ public class GiocoView extends Application {
         Scene scene = new Scene(root, 800, 600);
         scene.getStylesheets().add(getClass().getResource("/warstyle.css").toExternalForm());
         
-        // Gestione chiusura anche nella schermata errore
+        //Gestione chiusura anche nella schermata errore
         primaryStage.setOnCloseRequest(event -> {
             LogUtility.info("[GIOCO_ERRORE] Chiusura applicazione da schermata errore");
             
-            // In caso di errore di connessione, chiudi direttamente
+            //In caso di errore di connessione, chiudi direttamente
             try {
                 if (controller != null && controller.isConnesso()) {
                     controller.disconnetti();
@@ -200,7 +194,5 @@ public class GiocoView extends Application {
 
     @Deprecated
     public static void setGameManager(Object manager) {
-        // Metodo deprecato - non più necessario con il nuovo pattern MVC
-        // Il client non deve più conoscere il ServerGameManager
     }
 }

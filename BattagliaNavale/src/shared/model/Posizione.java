@@ -3,9 +3,7 @@ package shared.model;
 import java.io.Serializable;
 
 public class Posizione implements Serializable {
-    /**
-	 * 
-	 */
+    
 	private static final long serialVersionUID = 1L;
 	private int riga;
     private int colonna;

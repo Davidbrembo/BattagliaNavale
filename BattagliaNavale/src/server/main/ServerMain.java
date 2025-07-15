@@ -12,7 +12,7 @@ public class ServerMain {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} // porta a tua scelta
+		}
         server.start();
     }
 }

@@ -3,9 +3,7 @@ package shared.model;
 import java.io.Serializable;
 
 public class RisultatoAttacco implements Serializable {
-    /**
-	 * 
-	 */
+    
 	private static final long serialVersionUID = 1L;
 	private Posizione posizione;
     private boolean colpito = false;

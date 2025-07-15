@@ -30,7 +30,6 @@ public class ServerGameManager {
         return turno;
     }
 
-    // Metodo per ottenere le griglie
     public GrigliaServer[] getGriglie() {
         return griglie;
     }

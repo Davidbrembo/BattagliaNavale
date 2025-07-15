@@ -5,16 +5,14 @@ public class Impostazioni {
     private double volume;
     private double luminosita;
 
-    // Costruttore con parametri
     public Impostazioni(double volume, double luminosita) {
         this.volume = volume;
         this.luminosita = luminosita;
     }
 
-    // Costruttore di default con valori predefiniti
     public Impostazioni() {
-        this.volume = 50.0;  // Impostazione predefinita per il volume
-        this.luminosita = 50.0;  // Impostazione predefinita per la luminosità
+        this.volume = 50.0;
+        this.luminosita = 50.0;
     }
 
     // Getters e setters
@@ -34,8 +32,6 @@ public class Impostazioni {
         this.luminosita = luminosita;
     }
 
-
-    // Metodo per visualizzare le impostazioni in modo leggibile
     @Override
     public String toString() {
         return "Impostazioni [volume=" + volume + ", luminosita=" + luminosita + "]";

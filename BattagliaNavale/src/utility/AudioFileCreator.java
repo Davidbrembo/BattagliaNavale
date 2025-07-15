@@ -3,12 +3,9 @@ package utility;
 import javax.sound.sampled.*;
 import java.io.*;
 
-/**
- * Utility per creare file audio sintetici più puliti
- */
 public class AudioFileCreator {
     
-    private static final int SAMPLE_RATE = 22050; // Ridotto per file più piccoli
+    private static final int SAMPLE_RATE = 22050;
     private static final String AUDIO_PATH = "resources/";
     
     public static void inizializza() {
@@ -19,7 +16,6 @@ public class AudioFileCreator {
         
         LogUtility.info("[AUDIO_CREATOR] Creando file audio...");
         
-        // Crea i file audio se non esistono
         creaSeNonEsiste("hit.wav", () -> creaSuonoColpo());
         creaSeNonEsiste("miss.wav", () -> creaSuonoMancato());
         creaSeNonEsiste("sunk.wav", () -> creaSuonoNaveAffondata());
@@ -46,9 +42,8 @@ public class AudioFileCreator {
         }
     }
     
-    // Suoni molto più puliti e corti
     private static void creaSuonoColpo() {
-        byte[] audioData = generaBeep(300, 0.15, 0.3); // Frequenza, durata, volume
+        byte[] audioData = generaBeep(300, 0.15, 0.3);
         salvaAudio("hit.wav", audioData);
     }
     
@@ -58,7 +53,6 @@ public class AudioFileCreator {
     }
     
     private static void creaSuonoNaveAffondata() {
-        // Tre beep in sequenza
         byte[] beep1 = generaBeep(250, 0.1, 0.25);
         byte[] beep2 = generaBeep(200, 0.1, 0.25);
         byte[] beep3 = generaBeep(150, 0.2, 0.25);
@@ -67,16 +61,14 @@ public class AudioFileCreator {
     }
     
     private static void creaSuonoVittoria() {
-        // Melodia ascendente
-        byte[] nota1 = generaBeep(262, 0.15, 0.3); // Do
-        byte[] nota2 = generaBeep(330, 0.15, 0.3); // Mi
-        byte[] nota3 = generaBeep(392, 0.3, 0.3);  // Sol lungo
+        byte[] nota1 = generaBeep(262, 0.15, 0.3);
+        byte[] nota2 = generaBeep(330, 0.15, 0.3);
+        byte[] nota3 = generaBeep(392, 0.3, 0.3);
         byte[] audioData = combina(combina(nota1, nota2), nota3);
         salvaAudio("victory.wav", audioData);
     }
     
     private static void creaSuonoSconfitta() {
-        // Melodia discendente
         byte[] nota1 = generaBeep(220, 0.2, 0.25);
         byte[] nota2 = generaBeep(175, 0.2, 0.25);
         byte[] nota3 = generaBeep(147, 0.4, 0.25);
@@ -97,7 +89,7 @@ public class AudioFileCreator {
     }
     
     private static void creaSuonoClick() {
-        byte[] audioData = generaBeep(400, 0.03, 0.15); // Molto breve
+        byte[] audioData = generaBeep(400, 0.03, 0.15);
         salvaAudio("button_click.wav", audioData);
     }
     
@@ -111,29 +103,24 @@ public class AudioFileCreator {
         salvaAudio("chat_message.wav", audioData);
     }
     
-    // Generatore di beep semplice e pulito
     private static byte[] generaBeep(double frequenza, double durata, double volume) {
         int numSamples = (int) (SAMPLE_RATE * durata);
-        byte[] audioData = new byte[numSamples * 2]; // 16-bit samples
+        byte[] audioData = new byte[numSamples * 2];
         
         for (int i = 0; i < numSamples; i++) {
             double time = i / (double) SAMPLE_RATE;
-            double amplitude = volume * 8000; // Ampiezza ridotta per evitare distorsioni
-            
-            // Envelope semplice per evitare click
+            double amplitude = volume * 8000;
             double envelope = 1.0;
-            int fadeLength = numSamples / 10; // 10% fade in/out
+            int fadeLength = numSamples / 10;
             
             if (i < fadeLength) {
-                envelope = (double) i / fadeLength; // Fade in lineare
+                envelope = (double) i / fadeLength;
             } else if (i > numSamples - fadeLength) {
-                envelope = (double) (numSamples - i) / fadeLength; // Fade out lineare
+                envelope = (double) (numSamples - i) / fadeLength;
             }
             
-            // Genera onda sinusoidale pulita
             short sample = (short) (amplitude * envelope * Math.sin(2 * Math.PI * frequenza * time));
             
-            // Converti in bytes (little-endian)
             audioData[i * 2] = (byte) (sample & 0xFF);
             audioData[i * 2 + 1] = (byte) ((sample >> 8) & 0xFF);
         }
@@ -142,8 +129,7 @@ public class AudioFileCreator {
     }
     
     private static byte[] combina(byte[] audio1, byte[] audio2) {
-        // Pausa piccola tra i suoni
-        int pauseSamples = SAMPLE_RATE / 100; // 10ms di pausa
+        int pauseSamples = SAMPLE_RATE / 100;
         byte[] pausa = new byte[pauseSamples * 2];
         
         byte[] combined = new byte[audio1.length + pausa.length + audio2.length];
@@ -160,11 +146,11 @@ public class AudioFileCreator {
             AudioFormat format = new AudioFormat(
                 AudioFormat.Encoding.PCM_SIGNED,
                 SAMPLE_RATE,
-                16, // 16-bit
-                1,  // Mono
-                2,  // Frame size
+                16,
+                1,
+                2,
                 SAMPLE_RATE,
-                false // Little-endian
+                false
             );
             
             ByteArrayInputStream bais = new ByteArrayInputStream(audioData);

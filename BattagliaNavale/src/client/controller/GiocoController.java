@@ -67,7 +67,7 @@ public class GiocoController {
         return instance;
     }
 
-    // ================== NETWORK MANAGEMENT ==================
+    //Network management
 
     public boolean inizializzaConnessione() {
         try {
@@ -118,7 +118,7 @@ public class GiocoController {
         LogUtility.info("[CLIENT] Thread di ascolto server avviato");
     }
 
-    // ================== MESSAGE HANDLING ==================
+    //Message handling
 
     private void gestisciMessaggioServer(Messaggio messaggio) {
         LogUtility.info("[CLIENT] Ricevuto: " + messaggio.getComando());
@@ -139,7 +139,7 @@ public class GiocoController {
         }
     }
 
-    // ================== GAME LOGIC HANDLERS ==================
+    //Game logic handlers
 
     private void gestisciAssegnazioneID(int id) {
         this.myPlayerID = id;
@@ -235,7 +235,7 @@ public class GiocoController {
     }
 
     private void gestisciAttaccoRicevuto(RisultatoAttacco risultato) {
-        // Audio per attacco ricevuto (più discreto)
+        // Audio per attacco ricevuto
         if (risultato.isColpito()) {
             if (risultato.isNaveAffondata()) {
                 audioManager.riproduciNaveAffondata();
@@ -259,9 +259,6 @@ public class GiocoController {
         }
     }
 
-    /**
-     * Gestisce la vittoria (aggiornato)
-     */
     private void gestisciVittoria(String messaggio) {
         statoPartita = StatoPartita.FINITA;
         LogUtility.info("[CLIENT] 🏆 VITTORIA! " + messaggio);
@@ -283,7 +280,7 @@ public class GiocoController {
     }
 
     /**
-     * Gestisce la sconfitta (aggiornato)
+     * Gestisce la sconfitta
      */
     private void gestisciSconfitta(String messaggio) {
         statoPartita = StatoPartita.FINITA;
@@ -305,18 +302,13 @@ public class GiocoController {
         mioTurno = false;
     }
 
-    /**
-     * Gestisce gli errori (aggiornato per gestire disconnessioni)
-     */
     private void gestisciErrore(String errore) {
         LogUtility.error("[CLIENT] Errore dal server: " + errore);
-        
-        // Se l'errore indica che la partita è completa, gestiscilo diversamente
+
         if (errore.contains("Partita completa") || errore.contains("Massimo 2 giocatori")) {
             LogUtility.warning("[CLIENT] Server ha rifiutato la connessione: partita completa");
             connesso = false;
-            
-            // Notifica all'utente che deve riprovare più tardi
+
             Platform.runLater(() -> {
                 if (grigliaView != null) {
                     grigliaView.mostraErrore("Server pieno! Partita già in corso con 2 giocatori.");
@@ -356,20 +348,14 @@ public class GiocoController {
         }
     }
 
-    // ================== PUBLIC INTERFACE - ACTIONS ==================
+    //Public interface actions
 
-    /**
-     * Invia il nome del giocatore al server
-     */
     public void impostaNomeGiocatore(String nome) {
         this.nomeGiocatore = nome;
         inviaMessaggio(new Messaggio(Comando.INVIA_NOME, nome));
         LogUtility.info("[CLIENT] Nome giocatore impostato: " + nome);
     }
 
-    /**
-     * Invia un attacco alla posizione specificata
-     */
     public void attacca(Posizione posizione) {
         if (!mioTurno) {
             LogUtility.warning("[CLIENT] Tentativo di attacco fuori turno");
@@ -390,9 +376,6 @@ public class GiocoController {
         }
     }
 
-    /**
-     * Invia un messaggio in chat
-     */
     public void inviaMessaggioChat(String testo) {
         if (nomeGiocatore == null) {
             LogUtility.warning("[CLIENT] Nome giocatore non impostato");
@@ -403,9 +386,6 @@ public class GiocoController {
         inviaMessaggio(new Messaggio(Comando.MESSAGGIO_CHAT, messaggioChat));
     }
 
-    /**
-     * Invia il posizionamento delle navi
-     */
     public void inviaPosizionamentoNavi(List<List<Posizione>> navi) {
         // Salva le navi localmente per mostrarle nella griglia
         this.mieiNaviPosizionate = new ArrayList<>(navi);
@@ -423,11 +403,10 @@ public class GiocoController {
         }
     }
 
-    // ================== NAVIGATION CALLBACKS ==================
+    //Navigation callbacks
 
-    /**
-     * Registra callback per la transizione START (lobby -> posizionamento)
-     */
+    
+    //Registra callback per la transizione START (lobby -> posizionamento)
     public void setOnStartCallback(Runnable callback) {
         this.onStartCallback = callback;
         
@@ -438,14 +417,12 @@ public class GiocoController {
         }
     }
 
-    /**
-     * Registra callback per la transizione INIZIO_BATTAGLIA (posizionamento -> griglia)
-     */
+    //Registra callback per la transizione INIZIO_BATTAGLIA (posizionamento -> griglia)
     public void setOnInizioBattagliaCallback(Runnable callback) {
         this.onInizioBattagliaCallback = callback;
     }
 
-    // ================== VIEW REGISTRATION ==================
+    //View registration
 
     public void registraGrigliaView(GrigliaView view) {
         this.grigliaView = view;
@@ -460,7 +437,7 @@ public class GiocoController {
         this.chatView = view;
     }
 
-    // ================== UTILITY METHODS ==================
+    //Utility methods
 
     private void inviaMessaggio(Messaggio messaggio) {
         if (!connesso || clientSocket.getOutputStream() == null) {
@@ -470,9 +447,6 @@ public class GiocoController {
         clientSocket.inviaMessaggio(messaggio);
     }
 
-    /**
-     * Disconnessione con gestione migliorata
-     */
     public void disconnetti() {
         LogUtility.info("[CLIENT] Iniziando disconnessione...");
         
@@ -522,16 +496,11 @@ public class GiocoController {
         LogUtility.info("[CLIENT] Disconnessione completata");
     }
 
-    /**
-     * Verifica lo stato della connessione
-     */
     public boolean verificaConnessione() {
         return connesso && clientSocket != null && clientSocket.getOutputStream() != null;
     }
 
-    /**
-     * Metodo per controllo volume dalle impostazioni
-     */
+    //Controllo volume dalle impostazioni
     public void applicaImpostazioniAudio(double volume) {
         if (audioManager != null) {
             audioManager.setMasterVolume(volume / 100.0); // Converti da 0-100 a 0-1
@@ -539,7 +508,7 @@ public class GiocoController {
         }
     }
 
-    // ================== GETTERS ==================
+    //Getters
 
     public boolean isConnesso() { return connesso; }
     public String getNomeGiocatore() { return nomeGiocatore; }
@@ -553,7 +522,7 @@ public class GiocoController {
         return mieiNaviPosizionate; 
     }
 
-    // ================== INNER ENUM ==================
+    //Inner enum per lo stato della partita
 
     public enum StatoPartita {
         LOBBY,
