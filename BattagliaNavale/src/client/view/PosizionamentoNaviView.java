@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.Random;
 
 /**
- * View per il posizionamento delle navi con controlli migliorati
+ * View per il posizionamento delle navi con controlli migliorati e allineamento perfetto
  */
 public class PosizionamentoNaviView {
 
@@ -164,53 +164,108 @@ public class PosizionamentoNaviView {
         return scena;
     }
 
-    // Crea griglia con coordinate A-J, 1-10
     private VBox creaGrigliaConCoordinate() {
-        VBox container = new VBox(5);
+        VBox container = new VBox(0); // NESSUNO spacing tra header e griglia
         container.setAlignment(Pos.CENTER);
         
-        // Riga superiore con lettere A-J
-        HBox headerRow = new HBox(2);
+        // ========== RIGA SUPERIORE CON LETTERE A-J ==========
+        HBox headerRow = new HBox(2); // STESSO spacing della griglia (2px)
         headerRow.setAlignment(Pos.CENTER);
         
-        // Spazio vuoto per l'angolo
-        Label cornerSpace = new Label("  ");
-        cornerSpace.setPrefSize(30, 30);
-        headerRow.getChildren().add(cornerSpace);
+        // Spazio vuoto - ESATTA dimensione del numero laterale
+        Label corner = new Label();
+        corner.setPrefSize(25, 25); // Stessa dimensione dei numeri
+        corner.setMaxSize(25, 25);
+        corner.setMinSize(25, 25);
+        headerRow.getChildren().add(corner);
         
-        // Lettere A-J
+        // Lettere A-J - ESATTA dimensione delle celle
         for (char c = 'A'; c <= 'J'; c++) {
-            Label coordLabel = new Label(String.valueOf(c));
-            coordLabel.setPrefSize(37, 30);
-            coordLabel.setAlignment(Pos.CENTER);
-            coordLabel.setStyle("-fx-text-fill: #FFD700; -fx-font-weight: bold; -fx-font-size: 14px;");
-            headerRow.getChildren().add(coordLabel);
+            Label letter = new Label(String.valueOf(c));
+            letter.setPrefSize(35, 25); // 35 = larghezza cella esatta
+            letter.setMaxSize(35, 25);
+            letter.setMinSize(35, 25);
+            letter.setAlignment(Pos.CENTER);
+            letter.setStyle("-fx-text-fill: #FFD700; -fx-font-weight: bold; -fx-font-size: 14px;");
+            headerRow.getChildren().add(letter);
         }
         
-        // Container per la griglia con numeri laterali
-        HBox gridWithNumbers = new HBox(2);
-        gridWithNumbers.setAlignment(Pos.CENTER);
+        // ========== CORPO PRINCIPALE ==========
+        HBox mainRow = new HBox(0); // NESSUNO spacing tra numeri e griglia
+        mainRow.setAlignment(Pos.CENTER);
         
-        // Colonna sinistra con numeri 1-10
-        VBox leftNumbers = new VBox(2);
-        leftNumbers.setAlignment(Pos.CENTER);
+        // Numeri 1-10 - ESATTA dimensione delle celle
+        VBox numbers = new VBox(2); // STESSO spacing della griglia (2px)
+        numbers.setAlignment(Pos.CENTER);
         
         for (int i = 1; i <= 10; i++) {
-            Label numLabel = new Label(String.valueOf(i));
-            numLabel.setPrefSize(30, 37);
-            numLabel.setAlignment(Pos.CENTER);
-            numLabel.setStyle("-fx-text-fill: #FFD700; -fx-font-weight: bold; -fx-font-size: 14px;");
-            leftNumbers.getChildren().add(numLabel);
+            Label number = new Label(String.valueOf(i));
+            number.setPrefSize(25, 35); // 35 = altezza cella esatta
+            number.setMaxSize(25, 35);
+            number.setMinSize(25, 35);
+            number.setAlignment(Pos.CENTER);
+            number.setStyle("-fx-text-fill: #FFD700; -fx-font-weight: bold; -fx-font-size: 14px;");
+            numbers.getChildren().add(number);
         }
         
-        // Griglia vera e propria
+        // Griglia 10x10
         GridPane grid = creaGrigliaPosizionamento();
         
-        gridWithNumbers.getChildren().addAll(leftNumbers, grid);
-        container.getChildren().addAll(headerRow, gridWithNumbers);
+        mainRow.getChildren().addAll(numbers, grid);
+        container.getChildren().addAll(headerRow, mainRow);
         
         return container;
     }
+
+    private GridPane creaGrigliaPosizionamento() {
+        GridPane grid = new GridPane();
+        grid.setHgap(2);  // Spacing orizzontale
+        grid.setVgap(2);  // Spacing verticale
+        grid.setAlignment(Pos.CENTER);
+
+        celle = new StackPane[10][10];
+
+        for (int i = 0; i < 10; i++) {
+            for (int j = 0; j < 10; j++) {
+                final int riga = i;
+                final int colonna = j;
+                
+                StackPane cella = new StackPane();
+                cella.setPrefSize(35, 35);   // Dimensioni esatte
+                cella.setMinSize(35, 35);
+                cella.setMaxSize(35, 35);
+                
+                Rectangle sfondo = new Rectangle(35, 35);
+                sfondo.setFill(Color.LIGHTBLUE.deriveColor(0, 1, 1, 0.8));
+                sfondo.setStroke(Color.BLACK);
+                sfondo.setStrokeWidth(1);
+                
+                cella.getChildren().add(sfondo);
+
+                // Eventi mouse
+                cella.setOnMouseClicked(event -> {
+                    if (indiceNaveCorrente < naviDaPosizionare.length) {
+                        posizionaNave(riga, colonna, orientamentoOrizzontale);
+                    }
+                });
+
+                cella.setOnMouseEntered(e -> {
+                    if (indiceNaveCorrente < naviDaPosizionare.length && 
+                        !naviOccupate.contains(new Posizione(riga, colonna))) {
+                        mostraPreviewNaveConOrientamento(riga, colonna, orientamentoOrizzontale);
+                    }
+                });
+
+                cella.setOnMouseExited(e -> rimuoviPreview());
+
+                celle[riga][colonna] = cella;
+                grid.add(cella, colonna, riga);
+            }
+        }
+
+        return grid;
+    }
+
 
     // Ruota orientamento con R
     private void ruotaOrientamento() {
@@ -295,62 +350,6 @@ public class PosizionamentoNaviView {
         return buttonBox;
     }
 
-    private GridPane creaGrigliaPosizionamento() {
-        GridPane grid = new GridPane();
-        grid.setHgap(2);
-        grid.setVgap(2);
-        grid.setAlignment(Pos.CENTER);
-
-        int righe = 10;
-        int colonne = 10;
-        double cellSize = 35;
-        celle = new StackPane[righe][colonne];
-
-        // Crea le celle della griglia
-        for (int i = 0; i < righe; i++) {
-            for (int j = 0; j < colonne; j++) {
-                final int riga = i;
-                final int colonna = j;
-                
-                StackPane cella = new StackPane();
-                cella.setPrefSize(cellSize, cellSize);
-                cella.setMaxSize(cellSize, cellSize);
-                cella.setMinSize(cellSize, cellSize);
-                
-                Rectangle sfondo = new Rectangle(cellSize, cellSize);
-                sfondo.setFill(Color.LIGHTBLUE.deriveColor(0, 1, 1, 0.8));
-                sfondo.setStroke(Color.BLACK);
-                sfondo.setStrokeWidth(1);
-                
-                cella.getChildren().add(sfondo);
-
-                // Usa orientamento corrente
-                cella.setOnMouseClicked(event -> {
-                    if (indiceNaveCorrente < naviDaPosizionare.length) {
-                        posizionaNave(riga, colonna, orientamentoOrizzontale);
-                    }
-                });
-
-                // Preview con freccia direzionale
-                cella.setOnMouseEntered(e -> {
-                    if (indiceNaveCorrente < naviDaPosizionare.length && 
-                        !naviOccupate.contains(new Posizione(riga, colonna))) {
-                        mostraPreviewNaveConOrientamento(riga, colonna, orientamentoOrizzontale);
-                    }
-                });
-
-                cella.setOnMouseExited(e -> {
-                    rimuoviPreview();
-                });
-
-                celle[riga][colonna] = cella;
-                grid.add(cella, colonna, riga);
-            }
-        }
-
-        return grid;
-    }
-
     // Preview con freccia direzionale
     private void mostraPreviewNaveConOrientamento(int riga, int colonna, boolean orizzontale) {
         rimuoviPreview();
@@ -412,31 +411,35 @@ public class PosizionamentoNaviView {
         }
     }
 
-    // Crea freccia direzionale
+    // Metodo per creare freccia direzionale centrata
     private Polygon creaFrecciaOrientamento(boolean orizzontale) {
         Polygon freccia = new Polygon();
         
+        // Dimensioni più piccole per stare dentro la cella
+        double size = 12; // Ridotto per centrare meglio
+        
         if (orizzontale) {
-            // Freccia che punta a destra →
+            // Freccia che punta a destra → - centrata
             freccia.getPoints().addAll(new Double[]{
-                5.0, 15.0,  // Punta sinistra
-                20.0, 15.0, // Centro
-                15.0, 10.0, // Punta superiore destra
-                15.0, 20.0  // Punta inferiore destra
+                2.0, size/2,      // Punta sinistra
+                size*0.8, size/2, // Centro
+                size*0.6, size*0.3, // Punta superiore destra
+                size*0.6, size*0.7  // Punta inferiore destra
             });
         } else {
-            // Freccia che punta in basso ↓
+            // Freccia che punta in basso ↓ - centrata
             freccia.getPoints().addAll(new Double[]{
-                15.0, 5.0,  // Punta superiore
-                15.0, 20.0, // Centro
-                10.0, 15.0, // Punta sinistra basso
-                20.0, 15.0  // Punta destra basso
+                size/2, 2.0,      // Punta superiore
+                size/2, size*0.8, // Centro
+                size*0.3, size*0.6, // Punta sinistra basso
+                size*0.7, size*0.6  // Punta destra basso
             });
         }
         
         freccia.setFill(Color.DARKBLUE);
         freccia.setStroke(Color.WHITE);
         freccia.setStrokeWidth(1);
+        
         return freccia;
     }
 
@@ -607,12 +610,17 @@ public class PosizionamentoNaviView {
         aggiornaDescrizioneNaveCorrente();
     }
 
+    // Metodo per visualizzare la nave grafica con allineamento perfetto
     private void visualizzaNaveGrafica(List<Posizione> posizioni, TipoNave tipo, boolean orizzontale) {
         for (int i = 0; i < posizioni.size(); i++) {
             Posizione pos = posizioni.get(i);
             StackPane cella = celle[pos.getRiga()][pos.getColonna()];
             
+            // Crea la nave grafica con dimensioni che si adattano alla cella
             NaveGraphics naveGraph = new NaveGraphics(tipo, orizzontale, 35);
+            
+            // Imposta l'allineamento al centro della cella
+            StackPane.setAlignment(naveGraph, Pos.CENTER);
             
             if (posizioni.size() > 1) {
                 if (i == 0) {

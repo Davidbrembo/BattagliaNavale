@@ -28,7 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * View responsabile della visualizzazione delle griglie di gioco con navi grafiche realistiche.
+ * View responsabile della visualizzazione delle griglie di gioco con navi grafiche realistiche e allineamento perfetto.
  */
 public class GrigliaView {
 
@@ -71,21 +71,11 @@ public class GrigliaView {
         HBox griglie = new HBox(50);
         griglie.setAlignment(Pos.CENTER);
 
-        // Crea la griglia propria (sinistra)
-        VBox containerPropria = new VBox(10);
-        containerPropria.setAlignment(Pos.CENTER);
-        Label labelPropria = new Label("🚢 La tua flotta");
-        labelPropria.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
-        GridPane gridPropria = creaGriglia(true);
-        containerPropria.getChildren().addAll(labelPropria, gridPropria);
+        // Crea la griglia propria (sinistra) con coordinate
+        VBox containerPropria = creaGrigliaConCoordinate(true, "🚢 La tua flotta");
 
-        // Crea la griglia avversario (destra)
-        VBox containerAvversario = new VBox(10);
-        containerAvversario.setAlignment(Pos.CENTER);
-        Label labelAvversario = new Label("🎯 Flotta nemica");
-        labelAvversario.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
-        GridPane gridAvversario = creaGriglia(false);
-        containerAvversario.getChildren().addAll(labelAvversario, gridAvversario);
+        // Crea la griglia avversario (destra) con coordinate
+        VBox containerAvversario = creaGrigliaConCoordinate(false, "🎯 Flotta nemica");
 
         griglie.getChildren().addAll(containerPropria, containerAvversario);
         gameContainer.getChildren().addAll(statoLabel, griglie);
@@ -142,6 +132,64 @@ public class GrigliaView {
 
     // ================== UI CREATION ==================
 
+    // Metodo per creare griglia di battaglia con coordinate (opzionale)
+    private VBox creaGrigliaConCoordinate(boolean isPropria, String titolo) {
+        VBox container = new VBox(5);
+        container.setAlignment(Pos.CENTER);
+        
+        // Titolo della griglia
+        Label titoloLabel = new Label(titolo);
+        titoloLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
+        
+        // Riga superiore con lettere A-J
+        HBox headerRow = new HBox(2);
+        headerRow.setAlignment(Pos.CENTER);
+        
+        // Spazio vuoto per l'angolo
+        Label cornerSpace = new Label("  ");
+        cornerSpace.setPrefSize(37, 25);
+        cornerSpace.setAlignment(Pos.CENTER);
+        headerRow.getChildren().add(cornerSpace);
+        
+        // Lettere A-J
+        for (char c = 'A'; c <= 'J'; c++) {
+            Label coordLabel = new Label(String.valueOf(c));
+            coordLabel.setPrefSize(37, 25);
+            coordLabel.setMinSize(37, 25);
+            coordLabel.setMaxSize(37, 25);
+            coordLabel.setAlignment(Pos.CENTER);
+            coordLabel.setStyle("-fx-text-fill: #FFD700; -fx-font-weight: bold; -fx-font-size: 12px;");
+            headerRow.getChildren().add(coordLabel);
+        }
+        
+        // Container per la griglia con numeri laterali
+        HBox gridWithNumbers = new HBox(2);
+        gridWithNumbers.setAlignment(Pos.CENTER);
+        
+        // Colonna sinistra con numeri 1-10
+        VBox leftNumbers = new VBox(2);
+        leftNumbers.setAlignment(Pos.CENTER);
+        
+        for (int i = 1; i <= 10; i++) {
+            Label numLabel = new Label(String.valueOf(i));
+            numLabel.setPrefSize(25, 37);
+            numLabel.setMinSize(25, 37);
+            numLabel.setMaxSize(25, 37);
+            numLabel.setAlignment(Pos.CENTER);
+            numLabel.setStyle("-fx-text-fill: #FFD700; -fx-font-weight: bold; -fx-font-size: 12px;");
+            leftNumbers.getChildren().add(numLabel);
+        }
+        
+        // Griglia vera e propria
+        GridPane grid = creaGriglia(isPropria);
+        
+        gridWithNumbers.getChildren().addAll(leftNumbers, grid);
+        container.getChildren().addAll(titoloLabel, headerRow, gridWithNumbers);
+        
+        return container;
+    }
+
+    // Metodo corretto per creare griglia nella GrigliaView con allineamento perfetto
     private GridPane creaGriglia(boolean isPropria) {
         GridPane grid = new GridPane();
         grid.setHgap(2);
@@ -150,7 +198,7 @@ public class GrigliaView {
 
         int righe = 10;
         int colonne = 10;
-        double cellSize = 35;
+        double cellSize = 35; // STESSA DIMENSIONE di PosizionamentoNaviView per coerenza
         
         StackPane[][] grigliaCorrente;
         if (isPropria) {
@@ -162,7 +210,7 @@ public class GrigliaView {
             grigliaCorrente = celleAvversario;
         }
 
-        // Crea le celle della griglia
+        // Crea le celle della griglia con dimensioni identiche a PosizionamentoNaviView
         for (int i = 0; i < righe; i++) {
             for (int j = 0; j < colonne; j++) {
                 // Variabili final per uso nei lambda
@@ -170,9 +218,13 @@ public class GrigliaView {
                 final int colonna = j;
                 
                 StackPane cella = new StackPane();
+                // IMPORTANTE: Dimensioni identiche a PosizionamentoNaviView
                 cella.setPrefSize(cellSize, cellSize);
                 cella.setMaxSize(cellSize, cellSize);
                 cella.setMinSize(cellSize, cellSize);
+                
+                // IMPORTANTE: Centra tutti i contenuti della cella
+                cella.setAlignment(Pos.CENTER);
                 
                 // Sfondo della cella (acqua)
                 Rectangle sfondo = new Rectangle(cellSize, cellSize);
@@ -271,6 +323,7 @@ public class GrigliaView {
         });
     }
     
+    // Metodo corretto per visualizzare le navi con centratura perfetta
     private void visualizzaNave(List<Posizione> posizioni, TipoNave tipo, boolean orizzontale) {
         if (posizioni.isEmpty()) return;
         
@@ -279,6 +332,8 @@ public class GrigliaView {
             // Nave singola cella (non dovrebbe accadere, ma gestiamo il caso)
             Posizione pos = posizioni.get(0);
             NaveGraphics nave = new NaveGraphics(tipo, true, 35);
+            // IMPORTANTE: Assicurati che la nave sia centrata nella cella
+            StackPane.setAlignment(nave, Pos.CENTER);
             celleProprie[pos.getRiga()][pos.getColonna()].getChildren().add(nave);
             naviGrafiche.put(pos, nave);
         } else {
@@ -286,8 +341,11 @@ public class GrigliaView {
             for (int i = 0; i < posizioni.size(); i++) {
                 Posizione pos = posizioni.get(i);
                 
-                // Crea un segmento della nave
+                // Crea un segmento della nave con dimensioni corrette
                 NaveGraphics segmento = new NaveGraphics(tipo, orizzontale, 35);
+                
+                // IMPORTANTE: Centra il segmento nella cella
+                StackPane.setAlignment(segmento, Pos.CENTER);
                 
                 // Modifica il segmento per mostrare la continuità
                 if (i == 0) {
@@ -433,12 +491,16 @@ public class GrigliaView {
 
     // ================== EFFETTI VISIVI ==================
     
+    // Metodo corretto per aggiungere effetti visivi centrati
     private void aggiungiEffettoColpo(StackPane cella) {
-        // Effetto esplosione per colpo
+        // Effetto esplosione centrato
         Circle esplosione = new Circle(8);
         esplosione.setFill(Color.YELLOW);
         esplosione.setStroke(Color.RED);
         esplosione.setStrokeWidth(2);
+        
+        // IMPORTANTE: Centra l'esplosione nella cella
+        StackPane.setAlignment(esplosione, Pos.CENTER);
         cella.getChildren().add(esplosione);
         
         // Animazione dell'esplosione
@@ -451,23 +513,29 @@ public class GrigliaView {
     }
     
     private void aggiungiEffettoAffondamento(StackPane cella) {
-        // Effetto per nave affondata
-        aggiungiEffettoColpo(cella); // Prima l'esplosione
+        // Prima l'esplosione
+        aggiungiEffettoColpo(cella);
         
-        // Poi aggiungi simbolo affondamento
+        // Poi aggiungi simbolo affondamento centrato
         Platform.runLater(() -> {
             Text simbolo = new Text("💀");
             simbolo.setStyle("-fx-font-size: 16px;");
+            
+            // IMPORTANTE: Centra il simbolo nella cella
+            StackPane.setAlignment(simbolo, Pos.CENTER);
             cella.getChildren().add(simbolo);
         });
     }
     
     private void aggiungiEffettoSplash(StackPane cella) {
-        // Effetto splash per attacco mancato
+        // Effetto splash per attacco mancato - centrato
         Circle splash = new Circle(6);
         splash.setFill(Color.LIGHTBLUE);
         splash.setStroke(Color.BLUE);
         splash.setStrokeWidth(1);
+        
+        // IMPORTANTE: Centra lo splash nella cella
+        StackPane.setAlignment(splash, Pos.CENTER);
         cella.getChildren().add(splash);
         
         // Animazione fade out
